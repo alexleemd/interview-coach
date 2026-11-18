@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Client Interview Coach</title>
+<meta name="claude:viewport-fit-sides" content="cover">
 <meta name="description" content="Client interview prep: study topics, stories, practice questions, branching scenarios, a timed mock interview and a ChatGPT practice prompt.">
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#F2F4F9" media="(prefers-color-scheme: light)">
@@ -21,8 +22,9 @@
   its drafts and its feedback, sits in an outlined note.
   Type: the system font of the device (San Francisco on Apple devices, Segoe UI on Windows), so
   the file embeds no fonts and still works offline. Tracking tightens as the size grows.
-  Motion lives in app.js, as springs that start from what is on screen. The styles here only
-  handle press, hover and state changes, and each one has a calmer form for reduced motion.
+  Motion lives in app.js, as springs that start from what is on screen and are named in one list
+  there. The styles here only handle press, hover and state changes, with their durations and
+  curves named under Motion below. With reduced motion nothing animates.
 */
 
 :root {
@@ -91,7 +93,18 @@
   --rail-w: 17.5rem;
   --gutter-l: max(16px, env(safe-area-inset-left, 0px));
   --gutter-r: max(16px, env(safe-area-inset-right, 0px));
-  --press: 110ms;
+
+  /*
+    Motion. Every transition in these styles uses these names, and app.js reads the curves from
+    here. Press, hover and color changes take 150ms or less. Bigger moves are springs, named in
+    one list in app.js (SPRING).
+  */
+  --ease-out: cubic-bezier(0.32, 0.72, 0, 1);      /* something appears, or answers a press */
+  --ease-in: cubic-bezier(0.55, 0, 1, 0.45);       /* something leaves */
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);  /* something moves or resizes where it is */
+  --dur-press: 110ms;                              /* a press lands */
+  --dur-state: 150ms;                              /* hover, color and letting go */
+  --dur-tick: 200ms;                               /* one tick of the mock interview stopwatch */
 }
 
 @media (prefers-color-scheme: dark) {
@@ -206,6 +219,9 @@ html {
   /* Scrollbars and native controls take their color from the palette. */
   scrollbar-color: var(--ink-4) transparent;
   accent-color: var(--tint);
+  /* Nothing in motion can make the page wider than the window: a view sliding in, or a card thrown to the side. */
+  overflow-x: hidden;
+  overflow-x: clip;
 }
 body {
   margin: 0;
@@ -334,9 +350,9 @@ main > .view-host { max-width: 44rem; margin-inline: auto; }
   color: var(--ink); font-size: 0.9375rem; font-weight: 500; letter-spacing: -0.006em; text-decoration: none;
   appearance: none; width: 100%; border: 0; background: transparent;
   font-family: inherit; line-height: 1.3; text-align: left; cursor: pointer;
-  transition: background-color 220ms ease, transform 200ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  transition: background-color var(--dur-state) ease, transform var(--dur-state) var(--ease-out);
 }
-.route-link:active { transform: scale(0.98); transition-duration: var(--press); }
+.route-link:active { transform: scale(0.98); transition-duration: var(--dur-press); }
 .route-link[aria-current="page"] { font-weight: 600; }
 .route-progress { font-size: 0.8125rem; font-weight: 500; color: var(--ink-2); font-variant-numeric: tabular-nums; }
 
@@ -366,7 +382,7 @@ main > .view-host { max-width: 44rem; margin-inline: auto; }
 /* ---------- Notes tools ---------- */
 .tools { display: flex; flex-direction: column; gap: 0.75rem; margin-top: auto; padding: 1rem 0.375rem 0; border-top: 1px solid var(--hairline); }
 .save-status { display: flex; align-items: center; gap: 0.5rem; font-size: 0.8125rem; color: var(--ink-2); }
-.save-dot { width: 0.5rem; height: 0.5rem; border-radius: 50%; background: var(--good); flex: none; transition: background-color 200ms ease; }
+.save-dot { width: 0.5rem; height: 0.5rem; border-radius: 50%; background: var(--good); flex: none; transition: background-color var(--dur-state) ease; }
 .save-status.is-saving .save-dot { background: var(--ink-4); }
 .save-status.is-blocked .save-dot { background: var(--bad); }
 .tools-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.875rem; }
@@ -384,9 +400,9 @@ main > .view-host { max-width: 44rem; margin-inline: auto; }
   background: var(--fill-2); color: var(--ink);
   font: inherit; font-size: 0.9375rem; font-weight: 600; line-height: 1.2; letter-spacing: -0.006em;
   cursor: pointer; text-decoration: none; text-align: center;
-  transition: transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1), background-color 180ms ease, color 180ms ease, box-shadow 180ms ease, opacity 180ms ease;
+  transition: transform var(--dur-state) var(--ease-out), background-color var(--dur-state) ease, color var(--dur-state) ease, box-shadow var(--dur-state) ease, opacity var(--dur-state) ease;
 }
-.btn:active { transform: scale(0.97); background: var(--fill-3); transition-duration: var(--press); }
+.btn:active { transform: scale(0.97); background: var(--fill-3); transition-duration: var(--dur-press); }
 .btn .icon { width: 1.0625em; height: 1.0625em; }
 .btn-primary { background: var(--tint); color: var(--on-tint); }
 .btn-primary:active { background: var(--tint-hover); }
@@ -400,11 +416,23 @@ main > .view-host { max-width: 44rem; margin-inline: auto; }
   appearance: none; background: none; border: 0; padding: 0.25rem 0; font: inherit; font-weight: 500;
   color: var(--ink); cursor: pointer; border-radius: 0.25rem;
   text-decoration: underline; text-decoration-color: var(--hairline-strong); text-decoration-thickness: 1.5px; text-underline-offset: 0.22em;
-  transition: opacity 160ms ease, text-decoration-color 160ms ease;
+  transition: opacity var(--dur-state) ease, text-decoration-color var(--dur-state) ease;
 }
-.btn-link:active { opacity: 0.55; transition-duration: var(--press); }
+.btn-link:active { opacity: 0.55; transition-duration: var(--dur-press); }
 .btn-link.small { font-size: 0.8125rem; color: var(--ink-2); }
 .btn-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.625rem 0.75rem; }
+/*
+  A button whose label changes with its state (Pause and Resume, Copy and Copied) keeps both
+  labels in one grid cell. It is always as wide as the longer one, so nothing beside it moves and
+  it never slips out from under the pointer, and the labels cross-fade.
+*/
+.btn.faces { display: inline-grid; justify-items: center; }
+.face {
+  grid-area: 1 / 1; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; min-width: 0;
+  opacity: 0; transform: scale(0.9);
+  transition: opacity var(--dur-state) var(--ease-out), transform var(--dur-state) var(--ease-out);
+}
+.face.is-on { opacity: 1; transform: none; }
 
 /* ---------- Sections and surfaces ---------- */
 .hero, .view-head { display: flex; flex-direction: column; gap: 0.875rem; }
@@ -437,7 +465,7 @@ main > .view-host { max-width: 44rem; margin-inline: auto; }
   appearance: none; width: 100%; border: 0; background: transparent; font: inherit; text-align: left;
   display: grid; grid-template-columns: 1.75rem minmax(0, 1fr) auto 0.5rem; column-gap: 1rem; align-items: center;
   min-height: 3.25rem; padding: 0.625rem 1.375rem; color: var(--ink); text-decoration: none;
-  transition: background-color 260ms ease;
+  transition: background-color var(--dur-state) ease;
 }
 .plan-row::after { content: ""; grid-column: 4; width: 0.5rem; height: 0.5rem; }
 button.plan-row { cursor: pointer; }
@@ -455,23 +483,23 @@ button.plan-row:active { background: var(--fill-2); transition-duration: 0s; }
   appearance: none; display: inline; padding: 0; border: 0; background: none; border-radius: 0.25rem;
   font: inherit; font-weight: 600; color: var(--ink); text-align: left; cursor: pointer;
   text-decoration: underline; text-decoration-color: var(--sky-deep); text-decoration-thickness: 2px; text-underline-offset: 0.2em;
-  transition: opacity 160ms ease;
+  transition: opacity var(--dur-state) ease;
 }
-.link-btn:active { opacity: 0.55; transition-duration: var(--press); }
+.link-btn:active { opacity: 0.55; transition-duration: var(--dur-press); }
 /* The same link as a row of shortcuts to another step */
 .link-row { display: flex; flex-wrap: wrap; gap: 0.5rem; }
 .link-row .link-btn {
   display: inline-flex; align-items: center; gap: 0.4375rem;
   min-height: 2rem; padding: 0.3125rem 0.75rem 0.3125rem 0.875rem; border-radius: 1rem;
   background: var(--fill-2); font-size: 0.875rem; line-height: 1.3; text-decoration: none;
-  transition: background-color 180ms ease, transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  transition: background-color var(--dur-state) ease, transform var(--dur-state) var(--ease-out);
 }
 .link-row .link-btn::after {
   content: ""; flex: none; width: 0.375rem; height: 0.375rem; margin-right: 0.125rem;
   border-right: 1.75px solid currentColor; border-bottom: 1.75px solid currentColor; border-radius: 1px;
   transform: rotate(-45deg); opacity: 0.55;
 }
-.link-row .link-btn:active { opacity: 1; transform: scale(0.97); background: var(--fill-3); transition-duration: var(--press); }
+.link-row .link-btn:active { opacity: 1; transform: scale(0.97); background: var(--fill-3); transition-duration: var(--dur-press); }
 
 /* ---------- Tags ---------- */
 /* A tag is a pill on one line. A long name wraps onto a second line inside it instead of running off the screen. */
@@ -498,7 +526,7 @@ details.is-animating { overflow: hidden; }
   list-style: none; cursor: pointer;
   display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 1rem; align-items: center;
   min-height: 3.75rem; padding: 1rem 1.375rem;
-  transition: background-color 260ms ease;
+  transition: background-color var(--dur-state) ease;
 }
 .cue > summary { border-radius: var(--r-l); }
 .cue[open] > summary { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
@@ -531,6 +559,10 @@ details.is-animating { overflow: hidden; }
 .draft-title { font-weight: 600; }
 .draft-line { font-size: 0.9375rem; }
 .draft-list { margin: 0; padding-left: 1.25rem; display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.9375rem; }
+/* Study: hiding the points covers them where they are, so nothing under them moves. */
+.cover-stack { display: grid; }
+.cover-stack > * { grid-area: 1 / 1; min-width: 0; }
+.cover-stack.is-covered > .bullets { visibility: hidden; }
 /* Study: the questions a topic points at, each with how practice went */
 .topic-questions { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.5rem; }
 .topic-questions li { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem 0.625rem; font-size: 0.9375rem; }
@@ -551,7 +583,7 @@ input[type="text"], textarea, select {
   box-shadow: inset 0 0 0 1px var(--hairline);
   padding: 0.6875rem 0.875rem;
   caret-color: var(--tint);
-  transition: box-shadow 160ms ease, background-color 160ms ease;
+  transition: box-shadow var(--dur-state) ease, background-color var(--dur-state) ease;
 }
 input[type="text"] { min-height: 2.75rem; }
 textarea { min-height: 6rem; resize: vertical; line-height: 1.5; }
@@ -579,7 +611,7 @@ input[type="text"]:focus-visible, textarea:focus-visible, select:focus-visible {
 /* ---------- Segmented control (the thumb slides on a spring) ---------- */
 .option-row { display: flex; flex-direction: column; align-items: flex-start; gap: 0.5rem; }
 .seg {
-  position: relative; display: inline-grid; grid-auto-flow: column; grid-auto-columns: auto; gap: 0;
+  position: relative; display: inline-grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 0;
   padding: 0.1875rem; border-radius: 0.75rem; background: var(--fill-2);
   isolation: isolate; max-width: 100%;
 }
@@ -592,10 +624,14 @@ input[type="text"]:focus-visible, textarea:focus-visible, select:focus-visible {
   appearance: none; border: 0; background: transparent; color: var(--ink);
   min-height: 2.125rem; padding: 0.25rem 1.125rem; border-radius: 0.5625rem;
   font: inherit; font-size: 0.9375rem; font-weight: 500; letter-spacing: -0.006em; white-space: nowrap; cursor: pointer;
-  transition: opacity 180ms ease;
+  display: inline-grid; place-items: center;
+  transition: opacity var(--dur-state) ease;
 }
+/* Each segment holds an unseen copy of its label in the heavier weight, so choosing it does not change its width. */
+.seg button::after { content: attr(data-label); grid-area: 1 / 1; height: 0; overflow: hidden; visibility: hidden; font-weight: 600; }
+.seg button > span { grid-area: 1 / 1; }
 .seg button[aria-pressed="true"] { font-weight: 600; }
-.seg button:active { opacity: 0.55; transition-duration: var(--press); }
+.seg button:active { opacity: 0.55; transition-duration: var(--dur-press); }
 .seg button[aria-pressed="true"]:active { opacity: 1; }
 
 /* ---------- Check boxes, option cards and chips ---------- */
@@ -604,26 +640,26 @@ input[type="text"]:focus-visible, textarea:focus-visible, select:focus-visible {
   width: 1.375rem; height: 1.375rem; border-radius: 0.4375rem;
   background: transparent; box-shadow: inset 0 0 0 1.5px var(--ring);
   display: inline-grid; place-content: center;
-  transition: background-color 160ms ease, box-shadow 160ms ease, transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  transition: background-color var(--dur-state) ease, box-shadow var(--dur-state) ease, transform var(--dur-state) var(--ease-out);
 }
 .box::after {
   content: ""; width: 0.375rem; height: 0.6875rem; margin-top: -0.125rem;
   border: solid var(--on-tint); border-width: 0 2.25px 2.25px 0; border-radius: 1px;
-  opacity: 0; transform: rotate(45deg) scale(0.6); transition: transform 200ms cubic-bezier(0.2, 0.8, 0.2, 1), opacity 120ms ease;
+  opacity: 0; transform: rotate(45deg) scale(0.6); transition: transform var(--dur-state) var(--ease-out), opacity var(--dur-state) ease;
 }
 .box:checked { background: var(--tint); box-shadow: inset 0 0 0 1.5px var(--tint); }
 .box:checked::after { opacity: 1; transform: rotate(45deg) scale(1); }
 .box:disabled { opacity: 0.4; cursor: not-allowed; }
 .check-row {
   display: grid; grid-template-columns: 1.375rem minmax(0, 1fr); column-gap: 0.875rem; align-items: start;
-  padding: 0.875rem 1.375rem; cursor: pointer; transition: background-color 260ms ease;
+  padding: 0.875rem 1.375rem; cursor: pointer; transition: background-color var(--dur-state) ease;
 }
 .rows:has(> .check-row:not(.cov-row)) { --row-inset: 3.625rem; }
 .check-row:not(.cov-row):not(.is-disabled):active { background: var(--fill-2); transition-duration: 0s; }
-.check-row:not(.is-disabled):active .box { transform: scale(0.9); transition-duration: var(--press); }
+.check-row:not(.is-disabled):active .box { transform: scale(0.9); transition-duration: var(--dur-press); }
 .check-row.is-disabled { cursor: not-allowed; }
 .check-text { display: flex; flex-direction: column; gap: 0.125rem; }
-.check-main { transition: color 200ms ease; }
+.check-main { transition: color var(--dur-state) ease; }
 .check-sub { font-size: 0.8125rem; color: var(--ink-2); }
 .check-row.dim-done:has(.box:checked) .check-main { color: var(--ink-3); text-decoration: line-through; text-decoration-color: var(--ink-4); }
 .options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem; }
@@ -631,13 +667,13 @@ input[type="text"]:focus-visible, textarea:focus-visible, select:focus-visible {
   position: relative; display: flex; flex-direction: column; gap: 0.25rem;
   padding: 1.0625rem 1.25rem 1.125rem 3.125rem; border-radius: var(--r-l);
   background: var(--surface); box-shadow: var(--shadow-card); cursor: pointer;
-  transition: box-shadow 200ms ease, background-color 200ms ease, transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  transition: box-shadow var(--dur-state) ease, background-color var(--dur-state) ease, transform var(--dur-state) var(--ease-out);
 }
-.option:active { transform: scale(0.985); transition-duration: var(--press); }
+.option:active { transform: scale(0.985); transition-duration: var(--dur-press); }
 .option-input { position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none; }
 .option-dot {
   position: absolute; left: 1.25rem; top: 1.1875rem; width: 1.25rem; height: 1.25rem; border-radius: 50%;
-  box-shadow: inset 0 0 0 1.5px var(--ring); transition: box-shadow 200ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  box-shadow: inset 0 0 0 1.5px var(--ring); transition: box-shadow var(--dur-state) var(--ease-out);
 }
 .option:has(.option-input:checked) { background: var(--surface); box-shadow: 0 0 0 2px var(--tint), 0 6px 18px -10px rgba(0, 0, 51, 0.3); }
 .option:has(.option-input:checked) .option-dot { box-shadow: inset 0 0 0 0.375rem var(--tint); }
@@ -647,16 +683,23 @@ input[type="text"]:focus-visible, textarea:focus-visible, select:focus-visible {
 .chips { display: flex; flex-wrap: wrap; gap: 0.5rem; }
 .chip {
   position: relative; display: inline-flex; align-items: center; gap: 0.375rem;
-  min-height: 2.125rem; padding: 0 0.875rem; border-radius: 999px;
+  min-height: 2.125rem; padding: 0 0.875rem 0 0.6875rem; border-radius: 999px;
   background: var(--fill-2); color: var(--ink);
   font-size: 0.875rem; font-weight: 500; cursor: pointer;
-  transition: background-color 180ms ease, color 180ms ease, transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  transition: background-color var(--dur-state) ease, color var(--dur-state) ease, transform var(--dur-state) var(--ease-out);
 }
-.chip:active { transform: scale(0.96); transition-duration: var(--press); }
+.chip:active { transform: scale(0.96); transition-duration: var(--dur-press); }
 .chip input { position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none; }
-.chip-check { width: 0; height: 0.875rem; opacity: 0; transition: width 180ms cubic-bezier(0.2, 0.8, 0.2, 1), opacity 140ms ease; }
-.chip:has(input:checked) { background: var(--sky); color: var(--on-sky); font-weight: 600; }
-.chip:has(input:checked) .chip-check { width: 0.875rem; opacity: 1; }
+/* A chip always carries its mark, a plus that turns into a check, so ticking one never changes its size or moves the others. */
+.chip-mark { display: inline-grid; flex: none; width: 0.875rem; height: 0.875rem; }
+.chip-mark > .icon {
+  grid-area: 1 / 1; width: 100%; height: 100%;
+  transition: opacity var(--dur-state) var(--ease-out), transform var(--dur-state) var(--ease-out), filter var(--dur-state) var(--ease-out);
+}
+.chip-plus { color: var(--ink-2); }
+.chip-check, .chip:has(input:checked) .chip-plus { opacity: 0; transform: scale(0.3); filter: blur(3px); }
+.chip:has(input:checked) { background: var(--sky); color: var(--on-sky); }
+.chip:has(input:checked) .chip-check { opacity: 1; transform: none; filter: none; }
 .chip:has(input:focus-visible) { outline: 2px solid var(--focus); outline-offset: 2px; }
 
 /* ---------- Questions ---------- */
@@ -687,8 +730,9 @@ input[type="text"]:focus-visible, textarea:focus-visible, select:focus-visible {
 .ticket-no { font-weight: 600; font-size: 0.8125rem; letter-spacing: 0.03em; color: var(--ink-2); font-variant-numeric: tabular-nums; }
 .play { display: flex; flex-direction: column; gap: 0.75rem; align-items: stretch; }
 .play-back { align-self: flex-start; margin-left: -0.375rem; padding-left: 0.625rem; }
-.play-back::before {
-  content: ""; width: 0.4375rem; height: 0.4375rem; margin-right: -0.125rem;
+/* The arrow is the element after the label, ordered first, because the one before it is the hit area of a small button. */
+.play-back::after {
+  content: ""; order: -1; width: 0.4375rem; height: 0.4375rem; margin-right: -0.125rem;
   border-left: 2px solid currentColor; border-bottom: 2px solid currentColor; border-radius: 1px;
   transform: rotate(45deg);
 }
@@ -732,9 +776,9 @@ input[type="text"]:focus-visible, textarea:focus-visible, select:focus-visible {
   width: 100%; padding: 0.875rem 1.125rem 0.875rem 0.9375rem; border: 0; border-radius: var(--r-m);
   background: var(--surface-2); box-shadow: inset 0 0 0 1px var(--hairline);
   color: var(--ink); font: inherit; font-size: 1rem; line-height: 1.45; text-align: left; cursor: pointer;
-  transition: box-shadow 180ms ease, background-color 180ms ease, transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  transition: box-shadow var(--dur-state) ease, background-color var(--dur-state) ease, transform var(--dur-state) var(--ease-out);
 }
-.choice:active { transform: scale(0.985); background: var(--sky-soft); box-shadow: inset 0 0 0 1.5px var(--tint); transition-duration: var(--press); }
+.choice:active { transform: scale(0.985); background: var(--sky-soft); box-shadow: inset 0 0 0 1.5px var(--tint); transition-duration: var(--dur-press); }
 .choice-key {
   display: inline-grid; place-items: center; width: 1.75rem; height: 1.75rem; border-radius: 50%;
   background: var(--fill-2); color: var(--ink);
@@ -748,22 +792,45 @@ input[type="text"]:focus-visible, textarea:focus-visible, select:focus-visible {
 /* ---------- Mock interview: a card you throw into a tray ---------- */
 .deck { display: flex; flex-direction: column; gap: 1.125rem; }
 .card-slot { position: relative; }
+/* The next card waits under the one on top, so the slot is never empty while a card is dragged or thrown. */
+.card-slot.has-next::before {
+  content: ""; position: absolute; inset: 0; border-radius: var(--r-xl);
+  background: var(--surface); box-shadow: var(--shadow-card);
+}
 .card-q {
   position: relative; background: var(--surface); border-radius: var(--r-xl); box-shadow: var(--shadow-raised);
   touch-action: pan-y; user-select: none; -webkit-user-select: none; cursor: grab; will-change: transform;
-  transition: box-shadow 220ms ease;
 }
-.card-q.is-dragging { cursor: grabbing; box-shadow: var(--shadow-float); }
+/* The deeper shadow of a held card fades in on a layer of its own, which is cheaper than changing the card's shadow. */
+.card-q::after {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; box-shadow: var(--shadow-float);
+  opacity: 0; pointer-events: none; transition: opacity var(--dur-state) ease;
+}
+.card-q.is-dragging { cursor: grabbing; }
+.card-q.is-dragging::after { opacity: 1; }
+/* A card that was rated leaves on top of the next one, which is already in its place. */
+.card-q.is-leaving { position: absolute; top: 0; left: 0; z-index: 2; pointer-events: none; }
 .card-q button { cursor: pointer; }
-.card-head { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.75rem; padding: 1.25rem 1.75rem 0; }
+.card-head { display: flex; flex-wrap: wrap; align-items: center; align-content: flex-start; gap: 0.5rem 0.75rem; padding: 1.25rem 1.75rem 0; }
 .card-body { padding: 1rem 1.75rem 1.75rem; display: flex; flex-direction: column; gap: 1.5rem; }
 .card-question { font-family: var(--font-display); font-weight: 700; font-size: clamp(1.625rem, 1.25rem + 1.8vw, 2.25rem); line-height: 1.14; letter-spacing: -0.021em; outline: none; }
+/*
+  With a mouse, the cards in a round are one size, like cards in a deck: every question gets the
+  room the longest one needs (app.js measures it). The clock, the buttons and the trays then stay
+  where they are, so the pointer is already on the tray for the next rating. On a touch screen the
+  card stays as short as its question, because room matters more there than a fixed place.
+*/
+@media (hover: hover) and (pointer: fine) {
+  .card-head { min-height: var(--head-height, 0px); }
+  .card-question { min-height: var(--q-height, 0px); }
+}
 .clock { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: end; column-gap: 1rem; row-gap: 0.75rem; }
 .clock-time { font-family: var(--font-display); font-weight: 600; font-size: 3rem; line-height: 1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .clock-colon { display: inline-block; margin: 0 0.02em; transform: translateY(-0.07em); }
 .clock-target { font-size: 0.9375rem; color: var(--ink-2); padding-bottom: 0.3125rem; }
 .budget { grid-column: 1 / -1; position: relative; height: 0.375rem; border-radius: 999px; background: var(--fill-2); overflow: hidden; }
-.budget-fill { position: absolute; top: 0; bottom: 0; left: 0; width: 0; border-radius: 999px; background: var(--tint); transition: width 200ms linear, background-color 300ms ease; }
+/* The bar is full width and slides in from the left, so only its transform changes while the stopwatch runs. */
+.budget-fill { position: absolute; inset: 0; border-radius: 999px; background: var(--tint); transform: translateX(-100%); transition: transform var(--dur-tick) linear, background-color var(--dur-state) ease; }
 .budget.is-over .budget-fill { background: var(--warn); }
 .budget-tick { position: absolute; top: 0; bottom: 0; left: 66.667%; width: 2px; background: var(--surface); }
 /* The mark on the bar is the time to aim for, so that time is written under it. */
@@ -779,9 +846,9 @@ input[type="text"]:focus-visible, textarea:focus-visible, select:focus-visible {
   border: 0; border-radius: var(--r-l); background: var(--fill-2); box-shadow: inset 0 0 0 1.5px transparent;
   color: var(--ink); font: inherit; font-size: 0.9375rem; font-weight: 600; line-height: 1.25; letter-spacing: -0.006em; cursor: pointer;
   display: grid; place-items: center; text-align: center;
-  transition: background-color 180ms ease, box-shadow 180ms ease, color 180ms ease, transform 260ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  transition: background-color var(--dur-state) ease, box-shadow var(--dur-state) ease, color var(--dur-state) ease, transform var(--dur-state) var(--ease-out);
 }
-.tray:active { transform: scale(0.97); transition-duration: var(--press); }
+.tray:active { transform: scale(0.97); transition-duration: var(--dur-press); }
 /* The tray a card is heading for grows a little to meet it. */
 .tray.is-target { transform: scale(1.04); }
 .tray[data-rate="again"].is-target { background: var(--warn-soft); color: var(--warn); box-shadow: inset 0 0 0 1.5px var(--warn); }
@@ -820,14 +887,14 @@ input[type="text"]:focus-visible, textarea:focus-visible, select:focus-visible {
   padding: 1.125rem 1.375rem; border: 0; border-radius: var(--r-l);
   color: var(--ink); text-decoration: none;
   appearance: none; width: 100%; background: var(--surface); box-shadow: var(--shadow-card); font: inherit; text-align: left; cursor: pointer;
-  transition: box-shadow 220ms ease, transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  transition: box-shadow var(--dur-state) ease, transform var(--dur-state) var(--ease-out);
 }
 .next::after {
   content: ""; width: 0.5625rem; height: 0.5625rem; margin-right: 0.25rem;
   border-right: 2px solid var(--ink-3); border-bottom: 2px solid var(--ink-3); border-radius: 1px;
-  transform: rotate(-45deg); transition: transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  transform: rotate(-45deg); transition: transform var(--dur-state) var(--ease-out);
 }
-.next:active { transform: scale(0.985); transition-duration: var(--press); }
+.next:active { transform: scale(0.985); transition-duration: var(--dur-press); }
 .next-text { display: flex; flex-direction: column; gap: 0.125rem; }
 .next-kicker { font-size: 0.8125rem; font-weight: 500; color: var(--ink-2); }
 .next-title { font-family: var(--font-display); font-weight: 600; font-size: 1.1875rem; line-height: 1.25; letter-spacing: -0.012em; }
@@ -868,8 +935,8 @@ input[type="text"]:focus-visible, textarea:focus-visible, select:focus-visible {
 }
 .toast-icon { width: 1.25rem; height: 1.25rem; color: var(--hud-icon); }
 
-/* ---------- Pointer hover (only where a pointer can hover, so nothing sticks after a tap) ---------- */
-@media (hover: hover) {
+/* ---------- Pointer hover (only where a real pointer can hover, so nothing sticks after a tap) ---------- */
+@media (hover: hover) and (pointer: fine) {
   .route-link:not(.is-locked):not([aria-current="page"]):hover { background: var(--fill); }
   .btn:hover { background: var(--fill-3); }
   .btn-primary:hover { background: var(--tint-hover); }
@@ -911,7 +978,7 @@ input[type="text"]:focus-visible, textarea:focus-visible, select:focus-visible {
     background: var(--material-bar);
     -webkit-backdrop-filter: saturate(180%) blur(22px); backdrop-filter: saturate(180%) blur(22px);
     box-shadow: 0 1px 0 transparent;
-    transition: box-shadow 240ms ease;
+    transition: box-shadow var(--dur-state) ease;
   }
   .topbar.is-scrolled { box-shadow: 0 1px 0 var(--hairline), 0 10px 24px -18px rgba(0, 0, 51, 0.35); }
   .topbar .btn { background: var(--fill-2); }
@@ -920,7 +987,7 @@ input[type="text"]:focus-visible, textarea:focus-visible, select:focus-visible {
   .topbar-title { font-family: var(--font-display); font-weight: 600; font-size: 1.0625rem; line-height: 1.25; letter-spacing: -0.012em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .topbar-progress { grid-column: 1 / -1; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 0.25rem; padding: 0.625rem 0 0.625rem; }
   .topbar:has(.topbar-progress[hidden]) { padding-bottom: 0.5rem; }
-  .bar-step { height: 0.1875rem; border-radius: 999px; background: var(--fill-3); transition: background-color 300ms ease; }
+  .bar-step { height: 0.1875rem; border-radius: 999px; background: var(--fill-3); }
   .bar-step.is-done { background: var(--tint); }
   .bar-step.is-here { background: var(--sky-deep); }
   body::before { display: none; }
@@ -967,12 +1034,16 @@ input[type="text"]:focus-visible, textarea:focus-visible, select:focus-visible {
   .trays { gap: 0.5rem; }
   .tray { min-height: 3.75rem; padding-inline: 0.375rem; font-size: 0.875rem; }
 }
-/* Fingers get a 44px target even where the control looks smaller. */
+/*
+  Small controls keep their look, and the zone that takes the click is taller than they are: at
+  least 40px with a mouse and 44px under a finger. Where two zones meet, they share the overlap.
+*/
+.seg button, .link-row .link-btn, .btn-link, .peek > summary { position: relative; }
+.btn-small::before, .seg button::before, .chip::before, .link-row .link-btn::before, .btn-link::before, .peek > summary::after {
+  content: ""; position: absolute; left: 0; right: 0; top: 50%; height: 2.5rem; transform: translateY(-50%);
+}
 @media (pointer: coarse) {
-  .btn-small::before, .seg button::before, .chip::before, .link-row .link-btn::before, .btn-link::before {
-    content: ""; position: absolute; left: 0; right: 0; top: 50%; height: 2.75rem; transform: translateY(-50%);
-  }
-  .seg button, .link-row .link-btn, .btn-link { position: relative; }
+  .btn-small::before, .seg button::before, .chip::before, .link-row .link-btn::before, .btn-link::before, .peek > summary::after { height: 2.75rem; }
   .seg button { min-height: 2.375rem; }
   .route-link { min-height: 2.75rem; }
   /* A phone zooms the page when a field with small text takes focus, so every field stays at 16px there. */
@@ -986,6 +1057,9 @@ input[type="text"]:focus-visible, textarea:focus-visible, select:focus-visible {
   .toast { background: var(--ink); color: var(--bg); }
   .toast-icon { color: var(--bg); }
 }
+
+/* When the system flips between light and dark, every color changes at once instead of fading at its own speed. */
+.theme-switching *, .theme-switching *::before, .theme-switching *::after { transition: none !important; }
 
 /* ---------- Accessibility preferences ---------- */
 @media (prefers-contrast: more) {
@@ -1003,13 +1077,9 @@ input[type="text"]:focus-visible, textarea:focus-visible, select:focus-visible {
   .toast { background: var(--ink); color: var(--bg); }
   .toast-icon { color: var(--bg); }
 }
-/* Less motion: nothing moves or scales, and a change of state fades from one to the other instead. */
+/* Less motion: nothing animates. Every change happens at once and ends in the same state as with motion on. */
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    transition-property: opacity, color, background-color, box-shadow, text-decoration-color !important;
-    transition-duration: 140ms !important;
-    animation-duration: 0.01ms !important;
-  }
+  *, *::before, *::after { transition: none !important; animation: none !important; }
   .btn:active, .route-link:active, .option:active, .chip:active, .choice:active, .tray:active, .tray.is-target,
   .next:active, .link-row .link-btn:active, .check-row:active .box { transform: none; }
 }
@@ -1044,7 +1114,7 @@ input[type="text"]:focus-visible, textarea:focus-visible, select:focus-visible {
 /* Stages */
 .stage-head { display: grid; grid-template-columns: 1.75rem minmax(0, 1fr); align-items: center; column-gap: 0.875rem; row-gap: 0.3125rem; padding-inline: 0.25rem; }
 .stage-head .section-sub { grid-column: 2; }
-.stage-dot { background: var(--tint); color: var(--on-tint); box-shadow: none; transition: background-color 220ms ease, color 220ms ease; }
+.stage-dot { background: var(--tint); color: var(--on-tint); box-shadow: none; transition: background-color var(--dur-state) ease, color var(--dur-state) ease; }
 /* A stage that is done steps back, so the eye goes to the one that is next. */
 .stage-dot.is-done { background: var(--fill-3); color: var(--ink); box-shadow: none; }
 
@@ -1122,22 +1192,29 @@ input[type="text"]:focus-visible, textarea:focus-visible, select:focus-visible {
 .shot .shot-send .shot-cursor { left: 50%; top: 50%; }
 .shot-cursor path { fill: var(--ink); stroke: var(--surface); stroke-width: 1.75; paint-order: stroke; }
 
-/* The pictures play in turn, on a loop, while they are in view: what the step adds appears, then the pointer moves to the button and presses it. */
+/*
+  The pictures play on a loop, one at a time (setup.js sets the order and the pace). A picture
+  rests on its last frame. Before it plays again, what the step adds fades out. Then it plays:
+  what the step adds appears, and the pointer moves to the button and presses it.
+*/
 @media (prefers-reduced-motion: no-preference) {
   .shot-attach, .shot-paste, .shot-copy { --point-at: 260ms; --click-at: 820ms; }
-  .walk-step.is-waiting .shot-cursor { opacity: 0; }
-  .walk-step.is-waiting .shot-press { outline-color: transparent; }
-  .walk-step.is-waiting .shot-menu { opacity: 0; transform: scale(0.9); }
-  .walk-step.is-waiting :is(.shot-typed > *, .shot-code-line) { clip-path: inset(0 100% 0 0); }
-  .walk-step.is-waiting .shot-send.is-ready { background: var(--fill-3); }
-  .walk-step.is-playing .shot-cursor { animation: shot-point 700ms cubic-bezier(0.3, 0.7, 0.2, 1) var(--point-at) both; }
-  .walk-step.is-playing .shot-press { animation: shot-press 340ms ease var(--click-at) both; }
-  .walk-step.is-playing .shot-send.is-ready { animation: shot-ready 160ms ease 520ms both, shot-press 340ms ease var(--click-at) both; }
-  .walk-step.is-playing .shot-menu { animation: shot-pop 260ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+  .walk-step.is-rewinding :is(.shot-cursor, .shot-menu, .shot-typed > *, .shot-code-line) { opacity: 0; transition: opacity var(--dur-state) var(--ease-in); }
+  .walk-step.is-rewinding .shot-press { outline-color: transparent; transition: outline-color var(--dur-state) var(--ease-in); }
+  .walk-step.is-rewinding .shot-send.is-ready { background: var(--fill-3); transition: background-color var(--dur-state) var(--ease-in), outline-color var(--dur-state) var(--ease-in); }
+  .walk-step.is-playing .shot-cursor { animation: shot-point 700ms var(--ease-out) var(--point-at) both; }
+  .walk-step.is-playing .shot-press { animation: shot-press 340ms var(--ease-out) var(--click-at) both; }
+  .walk-step.is-playing .shot-send.is-ready { animation: shot-ready 160ms ease 520ms both, shot-press 340ms var(--ease-out) var(--click-at) both; }
+  .walk-step.is-playing .shot-menu { animation: shot-pop 260ms var(--ease-out) both; }
   .walk-step.is-playing :is(.shot-typed > *, .shot-code-line) { animation: shot-type 420ms linear both; }
   .walk-step.is-playing :is(.shot-typed, .shot-code-body) > :nth-child(2) { animation-delay: 110ms; }
   .walk-step.is-playing .shot-code-body > :nth-child(3) { animation-delay: 220ms; }
 }
+/* The face of the next card comes up as the rated card leaves it. */
+@media (prefers-reduced-motion: no-preference) {
+  .card-q.is-next > * { animation: card-face var(--dur-state) var(--ease-out) both; }
+}
+@keyframes card-face { from { opacity: 0; } }
 @keyframes shot-point {
   0% { opacity: 0; transform: var(--from); }
   30% { opacity: 1; }
@@ -1164,7 +1241,7 @@ input[type="text"]:focus-visible, textarea:focus-visible, select:focus-visible {
 .peek > summary::before {
   content: ""; width: 0.4375rem; height: 0.4375rem; flex: none;
   border-right: 2px solid var(--ink-3); border-bottom: 2px solid var(--ink-3); border-radius: 1px;
-  transform: rotate(-45deg); transition: transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  transform: rotate(-45deg); transition: transform var(--dur-state) var(--ease-out);
 }
 .peek[open] > summary::before { transform: rotate(45deg); }
 .peek[open] > .prompt { margin-top: 0.875rem; max-height: 22rem; border-radius: var(--r-m); }
@@ -1173,7 +1250,7 @@ input[type="text"]:focus-visible, textarea:focus-visible, select:focus-visible {
 .answer-zone {
   display: flex; flex-direction: column; min-width: 0;
   border-radius: var(--r-l); background: var(--surface); box-shadow: var(--shadow-card);
-  transition: box-shadow 160ms ease, background-color 160ms ease;
+  transition: box-shadow var(--dur-state) ease, background-color var(--dur-state) ease;
 }
 .answer-zone textarea.answer-box {
   border-radius: var(--r-l) var(--r-l) 0 0; background: transparent; box-shadow: none;
@@ -3482,95 +3559,89 @@ input[type="text"]:focus-visible, textarea:focus-visible, select:focus-visible {
   }
 
   /*
-    The pictures play in order, each one once the one before has finished, and two seconds after the
-    fourth has finished they start again from the first, so a round takes about 6.6 seconds. The
-    pictures that are not playing hold their last frame. The loop runs while any picture is in view
-    and the page is shown, and picks up where it stopped. With less motion, or in a browser that does
-    not report what is in view, each picture shows its last frame.
-    There is no pause button, by request. WCAG 2.2.2 asks for a way to pause motion that starts by
-    itself and runs longer than five seconds, so add one back if the coach has to meet it.
+    The pictures play on a loop while they are in view, one at a time and in order, so there is
+    always one place to look. A picture rests on its last frame, which shows the whole step.
+    Before it plays again, what the step adds fades out, and then it plays from the start.
+    The loop waits while no picture is in view, while the page is hidden and while the person is
+    typing in a field, so nothing moves next to what they are working on. A picture that has
+    started always finishes. With less motion, or in a browser that does not report what is in
+    view, every picture simply shows its last frame.
+
+    =============================================
+    STORYBOARD: one turn of the loop with all four pictures in view (ms)
+
+         0ms   picture 1: what the step adds fades out
+       170ms   picture 1 plays: the pointer moves to the button and presses it
+      1700ms   picture 2, the same way
+      3400ms   picture 3
+      5100ms   picture 4
+      8300ms   the loop starts over with picture 1
+    =============================================
+    start: the wait before the first picture. rewind: the fade before a picture plays.
+    play: how long one picture runs. gap: from one picture starting to the next.
+    rest: the extra wait after the last picture before the loop starts over.
   */
+  const WALK = { start: 300, rewind: 170, play: 1400, gap: 1700, rest: 1500 };
+
   function playWalk(list) {
     const steps = Array.from(list.children);
-    const between = 2000;
-    /* The browser starts an animation on the frame after it is asked for, so a short settle lets the press before it land first. */
-    const settle = 70;
-    if (!("IntersectionObserver" in window)) return;
-    steps.forEach(s => s.classList.add("is-waiting"));
-    const inView = new Set();
+    if (!motionOK() || !("IntersectionObserver" in window)) return;
+    const inView = steps.map(() => false);
     let next = 0;
-    let due = 0;
     let timer = 0;
-    let fallback = 0;
-    let heard = false;
 
-    /* Taking the class off and reading the layout makes the same animations start again from their first frame. */
-    const play = s => {
-      s.classList.remove("is-waiting", "is-playing");
-      void s.offsetWidth;
-      s.classList.add("is-playing");
+    const typing = () => {
+      const el = document.activeElement;
+      return !!el && (el.tagName === "TEXTAREA" || (el.tagName === "INPUT" && el.type === "text"));
     };
-    /* A picture has finished when the last of its animations has, delays included, so the timing stays with the styles. */
-    const runTime = s => {
-      const all = s.getAnimations ? s.getAnimations({ subtree: true }) : [];
-      return all.length ? Math.max(...all.map(a => (a.effect ? a.effect.getComputedTiming().endTime : 0))) : 1200;
-    };
-    const rest = () => steps.forEach(s => s.classList.remove("is-waiting", "is-playing"));
-    const ready = () => inView.size > 0 && motionOK();
 
-    function tick() {
+    const play = step => {
+      step.classList.add("is-rewinding");
+      setTimeout(() => {
+        step.classList.remove("is-rewinding");
+        step.classList.add("is-playing");
+        setTimeout(() => step.classList.remove("is-playing"), WALK.play);
+      }, WALK.rewind);
+    };
+
+    const turn = () => {
       timer = 0;
-      if (!list.isConnected) { stop(); return; }
-      if (!ready()) {
-        /* If less motion is turned on while the loop runs, the pictures settle on their last frame. */
-        if (REDUCE_MOTION && REDUCE_MOTION.matches) rest();
+      if (!list.isConnected || !motionOK() || typing()) return;
+      /* The next picture in view, looking on from where the loop is. */
+      let k = -1;
+      for (let n = 0; n < steps.length && k < 0; n++) {
+        const j = (next + n) % steps.length;
+        if (inView[j]) k = j;
+      }
+      if (k < 0) return;
+      play(steps[k]);
+      /* After the last picture in view, the loop rests and then starts over. */
+      const last = !inView.slice(k + 1).some(Boolean);
+      next = last ? 0 : k + 1;
+      timer = setTimeout(turn, WALK.gap + (last ? WALK.rest : 0));
+    };
+
+    /* Starts the loop again after a wait: a picture came into view, the page is shown again, or a field lost focus. */
+    const wake = () => {
+      if (!list.isConnected) {
+        /* The coach has opened, so Set up and its pictures are gone. */
+        io.disconnect();
+        document.removeEventListener("visibilitychange", wake);
+        document.removeEventListener("focusin", wake);
+        document.removeEventListener("focusout", wake);
         return;
       }
-      const s = steps[next];
-      play(s);
-      next = (next + 1) % steps.length;
-      const wait = runTime(s) + (next === 0 ? between : settle);
-      due = performance.now() + wait;
-      timer = setTimeout(tick, wait);
-    }
-
-    function wake() {
-      if (!list.isConnected) { stop(); return; }
-      if (!heard && !fallback && document.visibilityState !== "hidden") fallback = setTimeout(giveUp, 1500);
-      if (timer || !ready()) return;
-      timer = setTimeout(tick, Math.max(0, due - performance.now()));
-    }
-
-    function stop() {
-      clearTimeout(timer);
-      clearTimeout(fallback);
-      timer = 0;
-      io.disconnect();
-      document.removeEventListener("visibilitychange", wake);
-      if (REDUCE_MOTION) {
-        if (REDUCE_MOTION.removeEventListener) REDUCE_MOTION.removeEventListener("change", wake);
-        else if (REDUCE_MOTION.removeListener) REDUCE_MOTION.removeListener(wake);
-      }
-    }
-
-    function giveUp() {
-      if (heard) return;
-      stop();
-      rest();
-    }
+      if (!timer) timer = setTimeout(turn, WALK.start);
+    };
 
     const io = new IntersectionObserver(entries => {
-      heard = true;
-      entries.forEach(e => { if (e.isIntersecting) inView.add(e.target); else inView.delete(e.target); });
+      entries.forEach(e => { inView[steps.indexOf(e.target)] = e.isIntersecting; });
       wake();
     }, { threshold: 0.6 });
     steps.forEach(s => io.observe(s));
     document.addEventListener("visibilitychange", wake);
-    if (REDUCE_MOTION) {
-      if (REDUCE_MOTION.addEventListener) REDUCE_MOTION.addEventListener("change", wake);
-      else if (REDUCE_MOTION.addListener) REDUCE_MOTION.addListener(wake);
-    }
-    wake();
+    document.addEventListener("focusin", wake);
+    document.addEventListener("focusout", wake);
   }
 
   function field(id, label, help, control) {
@@ -3638,6 +3709,9 @@ input[type="text"]:focus-visible, textarea:focus-visible, select:focus-visible {
     return VIEWS.map(v => ({ v, what: what[v.id] || "" }));
   }
 
+  /* The kit card: the first mark starts this long after the card shows, and each next one this much later. */
+  const KIT = { first: 240, step: 75 };
+
   /* The one moment of motion on Set up: a sky blue mark passes over each part of the coach in turn. */
   function sweep(card) {
     const marks = Array.from(card.querySelectorAll(".kit-mark"));
@@ -3648,8 +3722,8 @@ input[type="text"]:focus-visible, textarea:focus-visible, select:focus-visible {
     marks.forEach((m, i) => {
       setTimeout(() => {
         const s = new Spring(0, p => { m.style.transform = "scaleX(" + Math.max(0, p).toFixed(3) + ")"; }, { precision: 0.002 });
-        s.to(1, { damping: 0.9, response: 0.34 });
-      }, 240 + i * 75);
+        s.to(1, SPRING.mark);
+      }, KIT.first + i * KIT.step);
     });
   }
 
@@ -3726,7 +3800,7 @@ input[type="text"]:focus-visible, textarea:focus-visible, select:focus-visible {
     /*
       3. ChatGPT: the job description and the CV are attached there, next to the prompt. They never
       pass through this page. The answer comes back one way only, as text in a code block. Each step
-      has a picture of where it happens in ChatGPT. The pictures play in turn on a loop.
+      has a picture of where it happens in ChatGPT.
     */
     const walkList = h("ol", { class: "walk", role: "list" },
       walkStep(1, "Open a new chat in " + APP.aiTool + ".", shotNewChat()),
@@ -3779,11 +3853,20 @@ input[type="text"]:focus-visible, textarea:focus-visible, select:focus-visible {
     });
     const result = h("div", { class: "setup-result", id: "setup-result", "aria-live": "polite" });
 
-    function showResult(node, after) {
+    /*
+      Shows a result under the answer box. When the fix is to paste again, focus goes back into the
+      box with its content selected, so the next paste replaces it, and the box shakes once. The
+      message is still read out, because the result area is a live region.
+    */
+    function showResult(node, after, pasteAgain) {
       result.replaceChildren(node);
       reveal(node, 0, 10);
       const head = node.querySelector("h3");
-      if (head) { head.setAttribute("tabindex", "-1"); head.focus({ preventScroll: true }); }
+      if (pasteAgain) {
+        answer.focus({ preventScroll: true });
+        answer.select();
+        shake(zone);
+      } else if (head) { head.setAttribute("tabindex", "-1"); head.focus({ preventScroll: true }); }
       node.scrollIntoView({ block: "nearest", behavior: motionOK() ? "smooth" : "auto" });
       if (after) after(node);
     }
@@ -3850,7 +3933,7 @@ input[type="text"]:focus-visible, textarea:focus-visible, select:focus-visible {
       const parsed = parseAnswer(answer.value);
       if (parsed.error === "empty") {
         setReady(false);
-        showResult(messageCard("Nothing to fill in yet", "Paste " + APP.aiTool + "’s whole answer above."));
+        showResult(messageCard("Nothing to fill in yet", "Paste " + APP.aiTool + "’s whole answer above."), null, true);
         return;
       }
       if (parsed.error) {
@@ -3858,7 +3941,7 @@ input[type="text"]:focus-visible, textarea:focus-visible, select:focus-visible {
         showResult(messageCard("This answer is not complete",
           "Wait until " + APP.aiTool + " has finished, press Copy on the code block and paste again. If the answer itself stopped part way, ask for it as a file and open that file here.",
           FILE_REQUEST, "Copy the file request",
-          h("button", { type: "button", class: "btn", id: "setup-open-file", onclick: () => fileInput.click() }, "Open the file")));
+          h("button", { type: "button", class: "btn", id: "setup-open-file", onclick: () => fileInput.click() }, "Open the file")), null, true);
         return;
       }
       const allProblems = p => cvProblems(p).concat(checkPack(p, null, true), contactProblems(p));
@@ -3929,7 +4012,8 @@ input[type="text"]:focus-visible, textarea:focus-visible, select:focus-visible {
     byId("topbar-progress").hidden = false;
     byId("nav").replaceChildren();
     window.scrollTo(0, 0);
-    start(pack);
+    /* fresh: the person just set this coach up, so it arrives with a short entrance and a confirmation. */
+    start(pack, fresh);
     addCoachTools(pack);
     byId("main").focus({ preventScroll: true });
   }
@@ -3958,8 +4042,9 @@ input[type="text"]:focus-visible, textarea:focus-visible, select:focus-visible {
         h("p", null, "This removes the role and all your notes for it from this browser. Copy the role or your notes first if you want to keep them."),
         h("div", { class: "confirm-actions" },
           h("button", { type: "button", class: "btn btn-small btn-danger", id: "start-over-confirm", onclick: () => { forget(pack.id); goBack(); } }, "Start over"),
-          h("button", { type: "button", class: "btn btn-small", onclick: closed }, "Cancel"))));
-      byId("start-over-confirm").focus();
+          h("button", { type: "button", class: "btn btn-small", id: "start-over-cancel", onclick: closed }, "Cancel"))));
+      /* Focus starts on Cancel, so a second press of Enter or Space cannot remove the role by accident. */
+      byId("start-over-cancel").focus();
     };
     closed();
     box.append(
@@ -4060,6 +4145,78 @@ const DEFAULT_MESSAGE_PLACEHOLDERS = [
 ];
 const NARROW = window.matchMedia ? window.matchMedia("(max-width: 860px)") : null;
 const REDUCE_MOTION = window.matchMedia ? window.matchMedia("(prefers-reduced-motion: reduce)") : null;
+
+/* ---------- Motion numbers, all in one place ---------- */
+
+/*
+  Every spring in the coach is named here. response is roughly how long the move takes to arrive,
+  in seconds: 0.32 lands in about 300ms. damping 1 settles without overshoot, and only the card,
+  which behaves like a real card, uses less. Leaving is always quicker than arriving.
+*/
+const SPRING = {
+  page:       { damping: 1, response: 0.38 },   /* a step or a sub view replaces another, and the selection pill follows it */
+  settle:     { damping: 1, response: 0.5 },    /* the selection settles on Brief when the coach opens from Set up */
+  open:       { damping: 1, response: 0.3 },    /* a disclosure opens */
+  close:      { damping: 1, response: 0.23 },   /* a disclosure closes, and a row that was removed closes its gap */
+  slide:      { damping: 1, response: 0.27 },   /* the thumb of a segmented control moves to the chosen option */
+  appear:     { damping: 1, response: 0.3 },    /* new content rises into place */
+  drawerIn:   { damping: 1, response: 0.34 },   /* the Steps panel opens, or returns after a short drag */
+  drawerOut:  { damping: 1, response: 0.26 },   /* the Steps panel closes */
+  toastIn:    { damping: 1, response: 0.26 },
+  toastOut:   { damping: 1, response: 0.19 },
+  travelX:    { damping: 1, response: 0.28 },   /* a picked answer travels into the transcript: across first */
+  travelY:    { damping: 1, response: 0.38 },   /* and up a little later, so its path is a curve and not a straight diagonal */
+  hold:       { damping: 1, response: 0.22 },   /* a card lifts when it is picked up */
+  letGo:      { damping: 1, response: 0.3 },    /* and sits back down */
+  springBack: { damping: 0.8, response: 0.32 }, /* a card thrown too softly returns, with a little give */
+  flyX:       { damping: 1, response: 0.32 },   /* a rated card flies to its tray: across first */
+  flyY:       { damping: 1, response: 0.42 },   /* and down a little later, on a curve */
+  flyShrink:  { damping: 1, response: 0.4 },    /* while it shrinks into the tray */
+  mark:       { damping: 1, response: 0.34 }    /* the highlighter mark on the kit card of Set up */
+};
+
+/* A named spring, with anything that belongs to one move only (its speed, or what to do when it rests). */
+function spring(name, extra) { return Object.assign({}, SPRING[name], extra || null); }
+
+/* Waits in milliseconds, distances in pixels, and shares of a card's width. */
+const MOTION = {
+  pushDistance: 28,     /* how far a view slides when it replaces another */
+  riseDistance: 12,     /* how far new content rises into place */
+  dragSlop: 10,         /* a sideways drag starts after this many pixels */
+  throwAim: 0.2,        /* a card dragged this share of its width lights up the tray it is heading for */
+  throwCommit: 0.4,     /* a throw that would carry the card this far goes into the tray */
+  exit: 130,            /* a skipped card fades out this fast */
+  secondPress: 400,     /* a rating this soon after a card appears is a second press, not an answer */
+  shake: 360,           /* an error shake */
+  toastHold: 3400,      /* how long a toast stays */
+  copiedHold: 1800,     /* how long a copy button says Copied */
+  undoHold: 10000,      /* how long Undo stays after a story is deleted */
+  saveDelay: 350,       /* typing is saved this long after the last key */
+  tick: 200             /* the stopwatch redraws this often, the same as --dur-tick in the styles */
+};
+
+/* =============================================
+ * STORYBOARD: an answer is picked in a scenario (ms after the press)
+ *
+ *    0ms   the answer travels from the button into the transcript
+ *  200ms   the coach's note rises in under it
+ *  290ms   the line that follows (the next update, or the wrap up)
+ *  380ms   the interviewer's next question
+ *  470ms   the next choices
+ * ============================================= */
+const ANSWER = { travel: 0, note: 200, step: 90 };
+
+/* =============================================
+ * STORYBOARD: the coach opens from Set up (ms after the answer passes)
+ *
+ *    0ms   the role name rises in, and the selection settles on Brief in the sidebar
+ *   90ms   the heading of the plan
+ *  180ms   the plan
+ *  270ms   the heading of the next section
+ *  360ms   its rows, and anything else in view
+ *  640ms   a toast says the coach is filled in
+ * ============================================= */
+const ARRIVAL = { step: 90, rise: 8, toast: 640 };
 
 /* ---------- DOM helpers ---------- */
 
@@ -4283,16 +4440,21 @@ function rubberband(over, dimension, constant) {
   return (over * dimension * c) / (dimension + c * over);
 }
 
-/* With reduced motion, things cross-fade instead of moving. */
-function fadeIn(el) {
-  if (el && el.animate) el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 160, easing: "ease-out" });
+/* A curve from the styles, so the page holds one copy of each. */
+function cssToken(name, fallback) {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
 }
 
-/* New content rises a little into place, without overshoot. */
+/* An error on submit: the field that is wrong shakes once, so the eye lands on it. */
+function shake(el) {
+  if (!el || !el.animate || !motionOK()) return;
+  el.animate([0, -10, 10, -6, 6, -3, 0].map(x => ({ transform: "translateX(" + x + "px)" })), { duration: MOTION.shake });
+}
+
+/* New content rises a little into place, without overshoot. With reduced motion it is simply there. */
 function reveal(el, delay, distance) {
-  if (!el) return;
-  if (!motionOK()) { fadeIn(el); return; }
-  const dy = distance || 12;
+  if (!el || !motionOK()) return;
+  const dy = distance || MOTION.riseDistance;
   el.style.opacity = "0";
   el.style.transform = "translateY(" + dy + "px)";
   const start = () => {
@@ -4300,39 +4462,97 @@ function reveal(el, delay, distance) {
       el.style.opacity = String(Math.min(1, p * 1.25));
       el.style.transform = "translateY(" + (dy * (1 - p)).toFixed(2) + "px)";
     }, { precision: 0.002 });
-    s.to(1, { damping: 1, response: 0.42, onRest: () => { el.style.opacity = ""; el.style.transform = ""; } });
+    s.to(1, spring("appear", { onRest: () => { el.style.opacity = ""; el.style.transform = ""; } }));
   };
   if (delay) setTimeout(start, delay); else start();
 }
 
-/* Moves an element from where something else was (a tapped answer) to where it now sits. */
+/* A row that goes away closes its gap on a spring, so the page under it does not jump. */
+function collapseAway(el) {
+  if (!motionOK()) { el.remove(); return; }
+  const cs = getComputedStyle(el);
+  const height = el.getBoundingClientRect().height;
+  const padTop = parseFloat(cs.paddingTop) || 0;
+  const padBottom = parseFloat(cs.paddingBottom) || 0;
+  const gap = el.parentElement ? parseFloat(getComputedStyle(el.parentElement).rowGap) || 0 : 0;
+  el.style.overflow = "hidden";
+  el.style.pointerEvents = "none";
+  el.style.minHeight = "0";
+  const s = new Spring(1, p => {
+    const q = Math.max(0, Math.min(1, p));
+    el.style.height = (height * q).toFixed(2) + "px";
+    el.style.paddingTop = (padTop * q).toFixed(2) + "px";
+    el.style.paddingBottom = (padBottom * q).toFixed(2) + "px";
+    el.style.marginBottom = (-gap * (1 - q)).toFixed(2) + "px";
+    el.style.opacity = String(q);
+  }, { precision: 0.002 });
+  s.to(0, spring("close", { onRest: () => el.remove() }));
+}
+
+/*
+  Moves an element from where something else was (a tapped answer) to where it now sits. It goes
+  across faster than it goes up or down, so its path is a curve and not a straight diagonal.
+*/
 function flipFrom(el, from) {
-  if (!el || !from) return;
-  if (!motionOK()) { fadeIn(el); return; }
+  if (!el || !from || !motionOK()) return;
   const to = el.getBoundingClientRect();
   const dx = from.left - to.left;
   const dy = from.top - to.top;
-  el.style.transform = "translate(" + dx + "px," + dy + "px)";
-  const s = new Spring(0, p => {
-    el.style.transform = "translate(" + (dx * (1 - p)).toFixed(2) + "px," + (dy * (1 - p)).toFixed(2) + "px)";
-  }, { precision: 0.002 });
-  s.to(1, { damping: 1, response: 0.42, onRest: () => { el.style.transform = ""; } });
+  let px = 0;
+  let py = 0;
+  const paint = () => {
+    el.style.transform = "translate(" + (dx * (1 - px)).toFixed(2) + "px," + (dy * (1 - py)).toFixed(2) + "px)";
+  };
+  paint();
+  new Spring(0, p => { px = p; paint(); }, { precision: 0.002 }).to(1, SPRING.travelX);
+  new Spring(0, p => { py = p; paint(); }, { precision: 0.002 }).to(1, spring("travelY", { onRest: () => { el.style.transform = ""; } }));
 }
 
 /*
   Replaces the content of a host with a horizontal push. Forward content enters from the right
-  and leaves to the left, and going back uses the same path in reverse.
+  and leaves to the left, and going back uses the same path in reverse. Each view moves on a
+  spring of its own, so a second push while the first still runs starts from where things are
+  and nothing snaps into place first.
+  leftAt is where the top of the old view was on screen before the page scrolled back to the top.
+  The view leaves from there, so what fades away is what the person was looking at.
 */
-let activePush = null;
-function pushTransition(host, node, direction) {
-  if (activePush) activePush.finish();
-  const old = host.firstElementChild;
+const pushes = new Map();
+
+/* The view a host shows now, leaving aside views that are already on their way out. */
+function shownIn(host) {
+  return Array.from(host.children).find(c => !(pushes.get(c) || {}).leaving) || null;
+}
+
+function stopPush(el) {
+  const st = pushes.get(el);
+  if (!st) return null;
+  st.spring.stop();
+  pushes.delete(el);
+  return st;
+}
+
+/* Ends every push in a host at once: views on their way out go, and the one arriving is in place. */
+function settlePushes(host) {
+  Array.from(pushes.keys()).forEach(el => {
+    if (el.parentNode !== host) return;
+    const st = stopPush(el);
+    if (st.leaving) el.remove();
+    else { el.style.opacity = ""; el.style.transform = ""; }
+  });
+}
+
+function pushTransition(host, node, direction, leftAt) {
+  const old = shownIn(host);
   if (!old || !direction || !motionOK()) {
+    settlePushes(host);
     host.replaceChildren(node);
-    if (direction && !motionOK()) fadeIn(node);
     return;
   }
   const dir = direction === "back" ? -1 : 1;
+  const dist = MOTION.pushDistance;
+
+  /* The view on screen leaves from wherever it is, also when it was still arriving. */
+  const was = stopPush(old) || { x: 0, o: 1 };
   const hostRect = host.getBoundingClientRect();
   const oldRect = old.getBoundingClientRect();
   old.querySelectorAll("[id]").forEach(n => n.removeAttribute("id"));
@@ -4340,29 +4560,32 @@ function pushTransition(host, node, direction) {
   old.setAttribute("aria-hidden", "true");
   old.inert = true;
   old.style.position = "absolute";
-  old.style.top = (oldRect.top - hostRect.top) + "px";
+  old.style.top = ((typeof leftAt === "number" ? leftAt : oldRect.top) - hostRect.top) + "px";
   old.style.left = "0";
   old.style.width = oldRect.width + "px";
   old.style.pointerEvents = "none";
-  host.appendChild(node);
-  const dist = 28;
-  node.style.opacity = "0";
-  node.style.transform = "translateX(" + (dir * dist) + "px)";
-  const s = new Spring(0, p => {
-    old.style.opacity = String(Math.max(0, 1 - p * 1.6));
-    old.style.transform = "translateX(" + (-dir * dist * p).toFixed(2) + "px)";
-    node.style.opacity = String(Math.min(1, p * 1.4));
-    node.style.transform = "translateX(" + (dir * dist * (1 - p)).toFixed(2) + "px)";
+  const out = { leaving: true, x: was.x, o: was.o, spring: null };
+  out.spring = new Spring(0, p => {
+    out.x = was.x + (-dir * dist - was.x) * p;
+    out.o = was.o * Math.max(0, 1 - p * 1.6);
+    old.style.opacity = String(out.o);
+    old.style.transform = "translateX(" + out.x.toFixed(2) + "px)";
   }, { precision: 0.002 });
-  const finish = () => {
-    s.stop();
-    if (old.parentNode) old.remove();
-    node.style.opacity = "";
-    node.style.transform = "";
-    if (activePush && activePush.finish === finish) activePush = null;
-  };
-  activePush = { finish };
-  s.to(1, { damping: 1, response: 0.38, onRest: finish });
+  pushes.set(old, out);
+  out.spring.to(1, spring("page", { onRest: () => { pushes.delete(old); old.remove(); } }));
+
+  host.appendChild(node);
+  const inn = { leaving: false, x: dir * dist, o: 0, spring: null };
+  node.style.opacity = "0";
+  node.style.transform = "translateX(" + inn.x + "px)";
+  inn.spring = new Spring(0, p => {
+    inn.x = dir * dist * (1 - p);
+    inn.o = Math.min(1, p * 1.4);
+    node.style.opacity = String(inn.o);
+    node.style.transform = "translateX(" + inn.x.toFixed(2) + "px)";
+  }, { precision: 0.002 });
+  pushes.set(node, inn);
+  inn.spring.to(1, spring("page", { onRest: () => { pushes.delete(node); node.style.opacity = ""; node.style.transform = ""; } }));
 }
 
 /* Disclosures open and close on a spring and can be reversed mid-way. */
@@ -4409,16 +4632,14 @@ function animateDisclosure(details, open) {
   }
   st.opening = open;
   details.classList.add("is-animating");
-  st.spring.to(open ? st.openH : st.closedH, {
-    damping: 1,
-    response: 0.36,
+  st.spring.to(open ? st.openH : st.closedH, spring(open ? "open" : "close", {
     onRest: () => {
       details.classList.remove("is-animating");
       details.style.height = "";
       details.style.removeProperty("--open");
       if (!st.opening) details.open = false;
     }
-  });
+  }));
 }
 
 /* ---------- Controls ---------- */
@@ -4433,10 +4654,12 @@ function segmented(label, key, options, current, onChange, helper) {
     type: "button",
     id: "seg-" + key + "-" + opt.value,
     "aria-pressed": String(opt.value === current),
+    /* The styles use this to hold room for the label in its heavier, chosen weight. */
+    "data-label": opt.label,
     onclick: () => select(opt.value)
-  }, opt.label));
+  }, h("span", null, opt.label)));
   appendAll(group, buttons);
-  const spring = new Spring(0, x => { thumb.style.transform = "translateX(" + x.toFixed(2) + "px)"; }, { precision: 0.3 });
+  const slide = new Spring(0, x => { thumb.style.transform = "translateX(" + x.toFixed(2) + "px)"; }, { precision: 0.3 });
 
   function place(animate) {
     const i = options.findIndex(o => o.value === selected);
@@ -4444,8 +4667,8 @@ function segmented(label, key, options, current, onChange, helper) {
     if (!b || !b.offsetWidth) return;
     thumb.style.width = b.offsetWidth + "px";
     thumb.style.opacity = "1";
-    if (animate) spring.to(b.offsetLeft, { damping: 1, response: 0.32 });
-    else spring.jump(b.offsetLeft);
+    if (animate) slide.to(b.offsetLeft, SPRING.slide);
+    else slide.jump(b.offsetLeft);
   }
   function select(value) {
     if (value === selected) return;
@@ -4454,7 +4677,8 @@ function segmented(label, key, options, current, onChange, helper) {
     place(true);
     onChange(value);
   }
-  if ("ResizeObserver" in window) new ResizeObserver(() => place(false)).observe(group);
+  /* A change of size places the thumb at once, but never cuts short a slide that is under way. */
+  if ("ResizeObserver" in window) new ResizeObserver(() => place(slide.animating)).observe(group);
   else requestAnimationFrame(() => place(false));
 
   return h("div", { class: "option-row" }, h("span", { class: "field-label", id: labelId }, label), group, helper || null);
@@ -4526,6 +4750,8 @@ function defaultState() {
     study: {},
     mockRounds: 0,
     aiCopied: false,
+    /* The Brief has nothing to tick, so it counts as read once the person moves on from it. */
+    briefRead: false,
     savedAt: 0,
     /* Personal content stays out of the AI prompt until the consultant ticks it in. */
     ai: { mode: "coach", count: 8, includeIntro: false, includeStories: false },
@@ -4568,11 +4794,19 @@ function loadState() {
 function saveSoon() {
   setSaveStatus("saving");
   clearTimeout(saveTimer);
-  saveTimer = setTimeout(saveNow, 350);
+  saveTimer = setTimeout(saveNow, MOTION.saveDelay);
+  /* The step markers follow a tick or a rating on the same frame. They do not wait for the save. */
+  syncProgress();
+}
+
+/* Nothing typed is lost when the tab closes or goes to the background before the next save. */
+function flushSave() {
+  if (saveTimer !== null) saveNow();
 }
 
 function saveNow() {
   clearTimeout(saveTimer);
+  saveTimer = null;
   state.savedAt = Date.now();
   try {
     window.localStorage.setItem(STORE_KEY, JSON.stringify(state));
@@ -4690,6 +4924,9 @@ function storyWords(id) {
 }
 
 function progressFor(id) {
+  if (id === "brief") {
+    return state.briefRead ? { short: "", long: "Read", done: true, started: true } : null;
+  }
   if (id === "study") {
     const t = studyTopics().length;
     if (!t) return null;
@@ -4781,15 +5018,19 @@ function viewFromHash() {
 
 function currentViewId() { return activeView || viewFromHash() || "brief"; }
 
-/* Moves to a step. The address bar follows when the browser allows it, but the coach never depends on it. */
-function go(id) {
+/*
+  Moves to a step. The address bar follows when the browser allows it, but the coach never depends on it.
+  instant swaps the view without a push, for a step picked in the Steps panel: the panel sliding
+  away is the motion there, and a second one behind it would compete with it.
+*/
+function go(id, instant) {
   if (!viewDef(id)) return;
   if (id === activeView && !firstRoute) {
     window.scrollTo(0, 0);
     return;
   }
   activeView = id;
-  route();
+  route(instant);
   try { if (location.hash !== "#" + id) location.hash = id; } catch (err) { /* the address bar is optional */ }
 }
 
@@ -4800,7 +5041,7 @@ function onHashChange() {
   route();
 }
 
-function route() {
+function route(instant) {
   if (drawerState.open) closeDrawer(true);
   if (cleanupFn) {
     try { cleanupFn(); } catch (err) { /* nothing to undo */ }
@@ -4808,23 +5049,52 @@ function route() {
   }
   postRender = null;
   const id = currentViewId();
+  if (lastViewId === "brief" && id !== "brief" && !state.briefRead) {
+    state.briefRead = true;
+    saveSoon();
+  }
   const view = RENDER[id]();
   view.appendChild(nextFooter(id));
   let dir = null;
-  if (!firstRoute && lastViewId && lastViewId !== id) dir = viewIndex(id) > viewIndex(lastViewId) ? "forward" : "back";
+  if (!firstRoute && !instant && lastViewId && lastViewId !== id) dir = viewIndex(id) > viewIndex(lastViewId) ? "forward" : "back";
+  const host = byId("view");
+  /* Where the view being left sits on screen now, before the page goes back to the top. */
+  const shown = shownIn(host);
+  const leftAt = shown ? shown.getBoundingClientRect().top : 0;
   if (!firstRoute) window.scrollTo(0, 0);
-  if (dir) pushTransition(byId("view"), view, dir);
-  else {
-    if (activePush) activePush.finish();
-    byId("view").replaceChildren(view);
-  }
+  pushTransition(host, view, dir, leftAt);
   lastViewId = id;
   refreshNav();
   updateTopbar();
-  moveMarker(byId("nav"), firstRoute ? "sweep" : "spring");
+  /* Nothing plays an entrance on a normal load. The selection only settles in when the coach opens from Set up. */
+  moveMarker(byId("nav"), !firstRoute ? "spring" : arriving ? "sweep" : "jump");
   if (!firstRoute) byId("main").focus({ preventScroll: true });
+  const opening = firstRoute && arriving;
   firstRoute = false;
   if (postRender) { const fn = postRender; postRender = null; fn(); }
+  if (opening) arrive(view);
+}
+
+/*
+  The coach opens from Set up. Its first view comes in piece by piece and a toast confirms what
+  happened, so the end of Set up is not a bare cut to another page. See ARRIVAL for the timing.
+  With reduced motion the view is simply there, and the toast still says it.
+*/
+let arriving = false;
+function arrive(view) {
+  arriving = false;
+  const pieces = [];
+  Array.from(view.children).forEach(part => {
+    if (part.classList.contains("section")) pieces.push(...part.children);
+    else pieces.push(part);
+  });
+  let i = 0;
+  pieces.forEach(el => {
+    if (el.getBoundingClientRect().top >= window.innerHeight) return;
+    reveal(el, Math.min(i, 4) * ARRIVAL.step, ARRIVAL.rise);
+    i++;
+  });
+  setTimeout(() => toast("The coach is filled in."), motionOK() ? ARRIVAL.toast : 0);
 }
 
 /* ---------- The route of steps, with a selection pill that follows you ---------- */
@@ -4836,7 +5106,7 @@ function buildNav(container, inDrawer) {
   const steps = h("ol", { class: "route route-steps" });
   const refs = h("ul", { class: "route route-ref" });
   VIEWS.forEach(v => {
-    const link = h("button", { type: "button", class: "route-link", "data-view": v.id, onclick: () => { if (inDrawer) closeDrawer(); go(v.id); } },
+    const link = h("button", { type: "button", class: "route-link", "data-view": v.id, onclick: () => { if (inDrawer) closeDrawer(); go(v.id, inDrawer); } },
       h("span", { class: "dot-slot" }),
       h("span", { class: "route-label" }, v.label),
       h("span", { class: "route-progress", "aria-hidden": "true" }),
@@ -4880,7 +5150,7 @@ function markerFor(container) {
   return m;
 }
 
-/* mode: "jump" places it, "spring" moves it from where it is, "sweep" lets it settle in once on load. */
+/* mode: "jump" places it, "spring" moves it from where it is, "sweep" lets it settle in once when the coach opens from Set up. */
 function moveMarker(container, mode) {
   const m = markerFor(container);
   if (!m || container.getClientRects().length === 0) return;
@@ -4898,15 +5168,15 @@ function moveMarker(container, mode) {
   m.el.style.left = x + "px";
   m.el.style.width = link.offsetWidth + "px";
   if (mode === "spring" && m.placed && motionOK()) {
-    m.sy.to(y, { damping: 1, response: 0.38 });
-    m.sh.to(height, { damping: 1, response: 0.38 });
-    if (m.ss.target !== 1) m.ss.to(1, { damping: 1, response: 0.4 });
+    m.sy.to(y, SPRING.page);
+    m.sh.to(height, SPRING.page);
+    if (m.ss.target !== 1) m.ss.to(1, SPRING.page);
   } else {
     m.sy.jump(y);
     m.sh.jump(height);
     if (mode === "sweep" && motionOK()) {
       m.ss.jump(0);
-      m.ss.to(1, { damping: 1, response: 0.6 });
+      m.ss.to(1, SPRING.settle);
     } else if (!m.ss.animating) {
       m.ss.jump(1);
     }
@@ -4981,13 +5251,8 @@ function openDrawer() {
   drawerState.open = true;
   setInert(true);
   moveMarker(byId("nav-drawer"), "jump");
-  if (motionOK()) {
-    drawerState.spring.to(0, { damping: 1, response: 0.34 });
-  } else {
-    drawerState.spring.jump(0);
-    fadeIn(d);
-    fadeIn(s);
-  }
+  if (motionOK()) drawerState.spring.to(0, SPRING.drawerIn);
+  else drawerState.spring.jump(0);
   const current = d.querySelector('.route-link[aria-current="page"]') || d.querySelector(".route-link");
   if (current) current.focus({ preventScroll: true });
 }
@@ -5009,7 +5274,7 @@ function closeDrawer(instant, velocity) {
     drawerState.spring.jump(-drawerWidth());
     hideAll();
   } else {
-    const opts = { damping: 1, response: 0.3, onRest: hideAll };
+    const opts = spring("drawerOut", { onRest: hideAll });
     if (typeof velocity === "number") opts.velocity = velocity;
     drawerState.spring.to(-drawerWidth(), opts);
   }
@@ -5018,7 +5283,7 @@ function closeDrawer(instant, velocity) {
   if (back && back.isConnected && typeof back.focus === "function") back.focus({ preventScroll: true });
 }
 
-/* Taps and vertical scrolls behave as normal. A sideways drag of 10px or more becomes a drag. */
+/* Taps and vertical scrolls behave as normal. A sideways drag of 10px or more (MOTION.dragSlop) becomes a drag. */
 function onDrawerDown(e) {
   if (e.button !== undefined && e.button !== 0) return;
   drawerState.drag = { id: e.pointerId, x0: e.clientX, y0: e.clientY, base: 0, active: false, samples: [] };
@@ -5030,8 +5295,8 @@ function onDrawerMove(e) {
   const dx = e.clientX - g.x0;
   const dy = e.clientY - g.y0;
   if (!g.active) {
-    if (Math.abs(dy) > 10 && Math.abs(dy) > Math.abs(dx)) { drawerState.drag = null; return; }
-    if (Math.abs(dx) < 10) return;
+    if (Math.abs(dy) > MOTION.dragSlop && Math.abs(dy) > Math.abs(dx)) { drawerState.drag = null; return; }
+    if (Math.abs(dx) < MOTION.dragSlop) return;
     g.active = true;
     g.x0 = e.clientX;
     g.base = drawerState.spring.x;
@@ -5060,7 +5325,8 @@ function onDrawerUp(e) {
   const velocity = first && last && last.t > first.t ? ((last.x - first.x) / (last.t - first.t)) * 1000 : 0;
   const projected = drawerState.spring.x + project(velocity);
   if (projected < -drawerWidth() * 0.5) closeDrawer(false, velocity);
-  else drawerState.spring.to(0, { damping: 0.8, response: 0.3, velocity });
+  /* The panel returns without overshoot. Only the card, a physical object, has give. */
+  else drawerState.spring.to(0, spring("drawerIn", { velocity }));
 }
 
 /* The notes tools live in the rail on wide screens and in the drawer on phones. */
@@ -5106,16 +5372,16 @@ function toast(msg) {
       el.style.filter = q > 0.985 ? "" : "blur(" + ((1 - q) * 6).toFixed(2) + "px)";
     }, { precision: 0.002 });
   }
-  if (motionOK()) toastSpring.to(1, { damping: 1, response: 0.38 });
-  else { toastSpring.jump(1); fadeIn(el); }
+  if (motionOK()) toastSpring.to(1, SPRING.toastIn);
+  else toastSpring.jump(1);
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(hideToast, 3400);
+  toastTimer = setTimeout(hideToast, MOTION.toastHold);
 }
 
 function hideToast() {
   const host = byId("toast-host");
   if (!toastSpring || !motionOK()) { host.hidden = true; return; }
-  toastSpring.to(0, { damping: 1, response: 0.32, onRest: () => { host.hidden = true; } });
+  toastSpring.to(0, spring("toastOut", { onRest: () => { host.hidden = true; } }));
 }
 
 async function copyText(text) {
@@ -5149,26 +5415,46 @@ function selectNode(node) {
 }
 
 /*
-  A copy button says Copied for a moment, right where the person is looking. It keeps its width,
-  so nothing beside it moves, and a second press while it shows only restarts the moment.
+  A button whose label changes with its state (Pause and Resume, Show and Hide). Both labels sit
+  in one grid cell (see .faces in the styles), so the button is always as wide as the longer one:
+  nothing beside it moves and it never slips out from under the pointer. setFace cross-fades from
+  one label to the other. The label that is not showing is hidden from screen readers.
+*/
+function faceButton(props, faces, current) {
+  const btn = h("button", Object.assign({ type: "button" }, props));
+  btn.classList.add("faces");
+  Object.keys(faces).forEach(key => btn.appendChild(h("span", { class: "face", "data-face": key }, faces[key])));
+  setFace(btn, current);
+  return btn;
+}
+
+function setFace(btn, key) {
+  Array.from(btn.children).forEach(f => {
+    if (!f.classList.contains("face")) return;
+    const on = f.getAttribute("data-face") === key;
+    f.classList.toggle("is-on", on);
+    if (on) f.removeAttribute("aria-hidden"); else f.setAttribute("aria-hidden", "true");
+  });
+}
+
+/*
+  A copy button says Copied for a moment, right where the person is looking. Copied is a second
+  label in the same grid cell, so the button keeps its width, the two cross-fade, and a second
+  press while it shows only restarts the moment.
 */
 const copiedButtons = new WeakMap();
 function flashCopied(btn) {
   if (!btn) return;
-  let shown = copiedButtons.get(btn);
-  if (shown) {
-    clearTimeout(shown.timer);
-  } else {
-    shown = { rest: Array.from(btn.childNodes), timer: 0 };
-    copiedButtons.set(btn, shown);
-    btn.style.minWidth = btn.offsetWidth + "px";
-    btn.replaceChildren(icon("check"), "Copied");
+  if (!btn.classList.contains("faces")) {
+    const rest = h("span", { class: "face is-on", "data-face": "rest" }, Array.from(btn.childNodes));
+    btn.replaceChildren(rest, h("span", { class: "face", "data-face": "done", "aria-hidden": "true" }, icon("check"), "Copied"));
+    btn.classList.add("faces");
+    /* Read the layout once, so this first swap cross-fades like every later one. */
+    void btn.offsetWidth;
   }
-  shown.timer = setTimeout(() => {
-    btn.replaceChildren(...shown.rest);
-    btn.style.minWidth = "";
-    copiedButtons.delete(btn);
-  }, 1800);
+  clearTimeout(copiedButtons.get(btn));
+  setFace(btn, "done");
+  copiedButtons.set(btn, setTimeout(() => setFace(btn, "rest"), MOTION.copiedHold));
 }
 
 function focusEl(id) {
@@ -5375,16 +5661,18 @@ function renderTopic(t, openIt) {
   const statusEl = h("span", null, studiedTag(!!state.study[t.id]));
   const points = h("ul", { class: "bullets", id: id + "-points" }, (Array.isArray(t.points) ? t.points : []).map(p => h("li", null, rich(p))));
   const recall = h("p", { class: "empty", hidden: true }, "Say the points out loud. Then show them again to check yourself.");
-  const toggle = h("button", {
-    type: "button", class: "btn btn-small", "aria-expanded": "true", "aria-controls": id + "-points",
+  /* Hiding covers the points where they are. The button under them and everything below stay put. */
+  const stack = h("div", { class: "cover-stack" }, points, recall);
+  const toggle = faceButton({
+    class: "btn btn-small", "aria-expanded": "true", "aria-controls": id + "-points",
     onclick: () => {
-      const hide = !points.hidden;
-      points.hidden = hide;
+      const hide = !stack.classList.contains("is-covered");
+      stack.classList.toggle("is-covered", hide);
       recall.hidden = !hide;
       toggle.setAttribute("aria-expanded", String(!hide));
-      toggle.textContent = hide ? "Show the points" : "Hide the points and say them out loud";
+      setFace(toggle, hide ? "show" : "hide");
     }
-  }, "Hide the points and say them out loud");
+  }, { hide: "Hide the points and say them out loud", show: "Show the points" }, "hide");
   const questions = (Array.isArray(t.questions) ? t.questions : []).map(questionById).filter(Boolean);
   return h("details", { class: "cue anim", id, open: !!openIt },
     h("summary", null,
@@ -5396,7 +5684,7 @@ function renderTopic(t, openIt) {
       h("span", { class: "sum-side" }, statusEl, icon("chevron", "chev"))),
     h("div", { class: "cue-body" },
       t.why ? block("Why it matters", h("p", null, rich(t.why))) : null,
-      block("What to know", [points, recall]),
+      block("What to know", stack),
       h("div", { class: "btn-row" }, toggle),
       t.say ? block("How to use it in an answer", h("p", null, rich(t.say))) : null,
       questions.length ? block("Questions to expect", h("ul", { class: "topic-questions" }, questions.map(q => h("li", null,
@@ -5554,7 +5842,10 @@ function tagChips(slot, st, onChange) {
         onChange(true);
       }
     });
-    row.appendChild(h("label", { class: "chip", for: id }, cb, icon("check", "chip-check"), h("span", null, x.name)));
+    /* The mark is always there, a plus that turns into a check, so a chip keeps its size when it is ticked. */
+    row.appendChild(h("label", { class: "chip", for: id }, cb,
+      h("span", { class: "chip-mark", "aria-hidden": "true" }, icon("plus", "chip-plus"), icon("check", "chip-check")),
+      h("span", null, x.name)));
   });
   return h("fieldset", { class: "field" }, h("legend", { class: "field-label" }, "This story also shows"), row);
 }
@@ -5640,19 +5931,20 @@ function removeCustomStory(id) {
     }
   }, "Undo");
   const row = h("div", { class: "undo-row", role: "status" }, h("span", null, "Story deleted."), undoBtn);
-  if (card) card.replaceWith(row);
+  if (card) {
+    /*
+      The card was open, so it is much taller than the row that replaces it. The page scrolls by
+      the difference, so the row sits where the bottom of the card was: Undo is under the pointer
+      that pressed Delete, and nothing below it moves.
+    */
+    const bottom = card.getBoundingClientRect().bottom;
+    card.replaceWith(row);
+    window.scrollBy(0, row.getBoundingClientRect().bottom - bottom);
+  }
   relabelExtras();
   updateCoverage();
   undoBtn.focus({ preventScroll: true });
-  setTimeout(() => {
-    if (!row.isConnected) return;
-    if (motionOK() && row.animate) {
-      const anim = row.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, easing: "ease-out" });
-      anim.onfinish = () => row.remove();
-    } else {
-      row.remove();
-    }
-  }, 10000);
+  setTimeout(() => { if (row.isConnected) collapseAway(row); }, MOTION.undoHold);
 }
 
 function relabelExtras() {
@@ -5811,8 +6103,10 @@ let play = null;
 function renderScenarios() {
   if (pending.scenario) {
     startPlay(pending.scenario);
+    /* The scenario arrives in one piece with the view that slides in. */
+    if (play) play.fresh = false;
     pending.scenario = null;
-    postRender = () => { animateConversation(null); focusEl("scn-prompt"); };
+    postRender = () => focusEl("scn-prompt");
   }
   const lead = "Interviewers often describe a situation and ask what you would do. Pick an answer at each step to see how an interviewer would likely hear it. More than one answer can be reasonable, but one is usually stronger.";
   return h("div", { class: "view" },
@@ -5846,8 +6140,9 @@ function priorityTag(p) {
 
 function openScenario(id) {
   startPlay(id);
+  /* The scenario arrives in one piece with the view that slides in. Lines only arrive one by one after an answer. */
+  if (play) play.fresh = false;
   drawScenarioHost("forward");
-  animateConversation(null);
   focusEl("scn-prompt");
 }
 
@@ -5946,7 +6241,9 @@ function choose(i, button) {
     recordScenario(s);
   }
   play.fresh = true;
-  byId("scn-host").replaceChildren(renderPlay());
+  const host = byId("scn-host");
+  settlePushes(host);
+  host.replaceChildren(renderPlay());
   animateConversation(from);
   const coach = byId("scn-last");
   if (coach) {
@@ -5955,7 +6252,10 @@ function choose(i, button) {
   }
 }
 
-/* Your answer travels from the button you tapped into the transcript, then new lines arrive in order. */
+/*
+  Your answer travels from the button you pressed into the transcript. The new lines start as it
+  lands and arrive in order, one after the other. See ANSWER for the timing.
+*/
 function animateConversation(from) {
   if (play) play.fresh = false;
   const you = byId("scn-you-last");
@@ -5963,7 +6263,7 @@ function animateConversation(from) {
   const fresh = Array.from(document.querySelectorAll('#scn-host [data-new="1"]'));
   fresh.forEach((el, k) => {
     el.removeAttribute("data-new");
-    reveal(el, (from ? 120 : 0) + k * 70);
+    reveal(el, ANSWER.note + k * ANSWER.step);
   });
 }
 
@@ -6003,10 +6303,11 @@ function renderMock() {
   const lead = "A timed practice round. Answer each question out loud as if the interviewer is in front of you, then rate yourself by putting the card in a tray.";
   cleanupFn = () => {
     stopTicker();
+    /* Leaving while the last card is in the air: the round is over, so it is closed in the data. */
+    if (mock && mock.closing) closeMock();
     if (mock && !mock.done && !mock.pausedAt) mock.pausedAt = Date.now();
-    if (mock) mock.flying = false;
   };
-  postRender = () => { if (mock && !mock.done && !mock.pausedAt) startTicker(); else tick(); };
+  postRender = () => { sizeMockCards(); if (mock && !mock.done && !mock.pausedAt) startTicker(); else tick(); };
   return h("div", { class: "view" },
     viewHead("Mock interview", lead),
     h("div", { class: "view-host", id: "mock-host" }, mockContent()));
@@ -6022,6 +6323,7 @@ function drawMock(direction) {
   const host = byId("mock-host");
   if (!host) return;
   pushTransition(host, mockContent(), direction);
+  sizeMockCards();
   shownSecond = -1;
   if (mock && !mock.done && !mock.pausedAt) startTicker();
   else { stopTicker(); tick(); }
@@ -6102,7 +6404,9 @@ function startMock() {
     ids: pickMockQuestions(Number(state.ui.mockLength) || 6, state.ui.mockFocus),
     index: 0, ratings: {}, times: {},
     startedAt: Date.now(), pausedAt: null, pausedTotal: 0,
-    showGuide: false, done: false, flying: false
+    showGuide: false, done: false, closing: false,
+    /* When the card on top appeared, on the page's own clock. */
+    shownAt: performance.now()
   };
   drawMock("forward");
   focusEl("mock-q");
@@ -6123,8 +6427,11 @@ function mockTarget() {
 function renderMockStage() {
   const trays = h("div", { class: "trays", id: "mock-trays", role: "group", "aria-labelledby": "trays-label" },
     RATINGS.map(r => h("button", { type: "button", class: "tray", "data-rate": r.value, onclick: () => rateMock(r.value) }, r.label)));
+  const slot = h("div", { class: "card-slot", id: "mock-slot" }, buildMockCard());
+  markDeck(slot);
+  if ("ResizeObserver" in window) new ResizeObserver(sizeMockCards).observe(slot);
   return h("div", { class: "deck" },
-    h("div", { class: "card-slot", id: "mock-slot" }, buildMockCard()),
+    slot,
     h("div", { class: "trays-head" },
       h("span", { class: "label", id: "trays-label" }, "How did it go?"),
       h("span", { class: "small muted" }, "Tap a tray, or throw the card left or right.")),
@@ -6134,31 +6441,80 @@ function renderMockStage() {
       h("button", { type: "button", class: "btn-link small", onclick: endMock }, "End the round")));
 }
 
+/* Whether another card waits under the one on top. */
+function markDeck(slot) {
+  slot.classList.toggle("has-next", mock.index + 1 < mock.ids.length);
+}
+
+/*
+  Cards in a round are one size, like cards in a deck: every question gets the room the longest
+  one needs. The clock, the buttons and the trays then stay where they are from one question to
+  the next, so the pointer is already on the tray for the next rating. The styles only use these
+  sizes where there is a mouse.
+*/
+function sizeMockCards() {
+  const slot = byId("mock-slot");
+  const q = byId("mock-q");
+  const head = byId("mock-head");
+  if (!slot || !q || !head || !mock || mock.done) return;
+  /* Unseen copies of the question and of the line above it take each question in turn and are measured. */
+  const probe = (node, width) => {
+    const copy = node.cloneNode(false);
+    copy.removeAttribute("id");
+    copy.setAttribute("aria-hidden", "true");
+    copy.style.cssText = "position:absolute;visibility:hidden;left:0;top:0;min-height:0;width:" + width + "px";
+    node.parentNode.appendChild(copy);
+    return copy;
+  };
+  const qProbe = probe(q, q.clientWidth);
+  const headProbe = probe(head, head.offsetWidth);
+  let qTallest = 0;
+  let headTallest = 0;
+  mock.ids.forEach((id, i) => {
+    const item = questionById(id);
+    if (!item) return;
+    qProbe.textContent = item.q;
+    qTallest = Math.max(qTallest, qProbe.offsetHeight);
+    headProbe.replaceChildren(...mockHeadParts(item, i));
+    headTallest = Math.max(headTallest, headProbe.offsetHeight);
+  });
+  qProbe.remove();
+  headProbe.remove();
+  slot.style.setProperty("--q-height", qTallest + "px");
+  slot.style.setProperty("--head-height", headTallest + "px");
+}
+
+/* The line above a question: where it is in the round, its area and its type. */
+function mockHeadParts(q, i) {
+  return [
+    h("span", { class: "label" }, "Question " + (i + 1) + " of " + mock.ids.length),
+    tag(areaName(q.area)),
+    tag(TYPE_LABEL[q.type], "outline")
+  ];
+}
+
 function buildMockCard() {
   const q = questionById(mock.ids[mock.index]);
   const target = mockTarget();
   const guide = h("div", { class: "guide", id: "mock-guide", hidden: !mock.showGuide },
     block("A strong answer covers", h("ul", { class: "bullets" }, q.covers.map(c => h("li", null, rich(c))))),
     block("Watch out for", h("p", null, q.avoid)));
-  const guideBtn = h("button", {
-    type: "button", class: "btn btn-small",
+  const guideBtn = faceButton({
+    class: "btn btn-small",
     "aria-expanded": String(mock.showGuide), "aria-controls": "mock-guide",
     onclick: () => {
       mock.showGuide = !mock.showGuide;
       guide.hidden = !mock.showGuide;
       if (mock.showGuide) reveal(guide, 0, 8);
       guideBtn.setAttribute("aria-expanded", String(mock.showGuide));
-      guideBtn.textContent = mock.showGuide ? "Hide the guide" : "Show what a strong answer covers";
+      setFace(guideBtn, mock.showGuide ? "hide" : "show");
     }
-  }, mock.showGuide ? "Hide the guide" : "Show what a strong answer covers");
-  const pauseBtn = h("button", { type: "button", class: "btn btn-small", id: "mock-pause", onclick: togglePause },
-    icon(mock.pausedAt ? "play" : "pause"), mock.pausedAt ? "Resume" : "Pause");
+  }, { show: "Show what a strong answer covers", hide: "Hide the guide" }, mock.showGuide ? "hide" : "show");
+  const pauseBtn = faceButton({ class: "btn btn-small", id: "mock-pause", onclick: togglePause },
+    { pause: [icon("pause"), "Pause"], resume: [icon("play"), "Resume"] }, mock.pausedAt ? "resume" : "pause");
 
   const card = h("article", { class: "card-q", id: "mock-card", "aria-labelledby": "mock-q" },
-    h("div", { class: "card-head" },
-      h("span", { class: "label" }, "Question " + (mock.index + 1) + " of " + mock.ids.length),
-      tag(areaName(q.area)),
-      tag(TYPE_LABEL[q.type], "outline")),
+    h("div", { class: "card-head", id: "mock-head" }, mockHeadParts(q, mock.index)),
     h("div", { class: "card-body" },
       h("h2", { class: "card-question", id: "mock-q", tabindex: "-1" }, q.q),
       h("div", { class: "clock" },
@@ -6177,20 +6533,25 @@ function buildMockCard() {
 /*
   The card tracks the pointer 1:1 once a sideways drag passes 10px. On release, the throw is
   projected forward from its speed, and the card lands in the tray it is heading for or springs
-  back if the throw was too short. X and Y move on separate springs.
+  back if the throw was too short. X and Y move on separate springs. These four springs are the
+  only thing that ever moves a card, so nothing can pull it out of the hand that holds it.
 */
 function attachThrow(card) {
   let g = null;
   const sx = new Spring(0, paint, { precision: 0.3 });
   const sy = new Spring(0, paint, { precision: 0.3 });
+  /* How far the card is into its tray: 0 on the table, 1 inside. */
   const sp = new Spring(0, paint, { precision: 0.01 });
   /* The card lifts a little off the page while it is held. */
   const sl = new Spring(0, paint, { precision: 0.005 });
   function paint() {
-    const rot = Math.max(-6, Math.min(6, sx.x * 0.025));
-    const scale = (1 - 0.6 * sp.x) * (1 + 0.02 * sl.x);
+    const into = Math.max(0, Math.min(1, sp.x));
+    /* The card tilts with the drag and straightens as it lands. */
+    const rot = Math.max(-6, Math.min(6, sx.x * 0.025)) * (1 - into);
+    const scale = (1 - 0.7 * into) * (1 + 0.02 * sl.x);
     card.style.transform = "translate3d(" + sx.x.toFixed(2) + "px," + sy.x.toFixed(2) + "px,0) rotate(" + rot.toFixed(2) + "deg) scale(" + scale.toFixed(3) + ")";
-    card.style.opacity = String(1 - 0.9 * sp.x);
+    /* It stays solid on the way, like a real card, and only dissolves once it is over the tray. */
+    card.style.opacity = into > 0.7 ? String(Math.max(0, 1 - (into - 0.7) / 0.3)) : "";
   }
   function markTray(rate) {
     const t = byId("mock-trays");
@@ -6199,7 +6560,7 @@ function attachThrow(card) {
   card.addEventListener("pointerdown", e => {
     if (e.button !== undefined && e.button !== 0) return;
     if (e.target.closest("button, a, input, textarea, select, .guide")) return;
-    if (!mock || mock.flying) return;
+    if (!mock || mock.closing) return;
     g = { id: e.pointerId, x0: e.clientX, y0: e.clientY, active: false, samples: [] };
   });
   card.addEventListener("pointermove", e => {
@@ -6207,8 +6568,8 @@ function attachThrow(card) {
     const dx = e.clientX - g.x0;
     const dy = e.clientY - g.y0;
     if (!g.active) {
-      if (Math.abs(dy) > 10 && Math.abs(dy) > Math.abs(dx)) { g = null; return; }
-      if (Math.abs(dx) < 10) return;
+      if (Math.abs(dy) > MOTION.dragSlop && Math.abs(dy) > Math.abs(dx)) { g = null; return; }
+      if (Math.abs(dx) < MOTION.dragSlop) return;
       g.active = true;
       g.x0 = e.clientX;
       g.y0 = e.clientY;
@@ -6216,7 +6577,7 @@ function attachThrow(card) {
       g.by = sy.x;
       sx.stop();
       sy.stop();
-      sl.to(1, { damping: 1, response: 0.22 });
+      sl.to(1, SPRING.hold);
       card.classList.add("is-dragging");
       try { card.setPointerCapture(e.pointerId); } catch (err) { /* capture is optional */ }
     }
@@ -6226,7 +6587,7 @@ function attachThrow(card) {
     sy.x = y; sy.v = 0;
     paint();
     const w = card.offsetWidth;
-    markTray(x < -w * 0.2 ? "again" : x > w * 0.2 ? "strong" : null);
+    markTray(x < -w * MOTION.throwAim ? "again" : x > w * MOTION.throwAim ? "strong" : null);
     const now = performance.now();
     g.samples.push({ x, t: now });
     while (g.samples.length > 2 && now - g.samples[0].t > 100) g.samples.shift();
@@ -6237,24 +6598,28 @@ function attachThrow(card) {
     g = null;
     if (!was.active) return;
     card.classList.remove("is-dragging");
-    sl.to(0, { damping: 1, response: 0.3 });
+    sl.to(0, SPRING.letGo);
     markTray(null);
     const f = was.samples[0];
     const l = was.samples[was.samples.length - 1];
     const v = f && l && l.t > f.t ? ((l.x - f.x) / (l.t - f.t)) * 1000 : 0;
     const projected = sx.x + project(v, 0.99);
     const w = card.offsetWidth;
-    if (projected < -w * 0.4) { card._releaseV = v; rateMock("again"); }
-    else if (projected > w * 0.4) { card._releaseV = v; rateMock("strong"); }
-    else {
-      sx.to(0, { damping: 0.8, response: 0.32, velocity: v });
-      sy.to(0, { damping: 0.8, response: 0.32 });
+    const aim = projected < -w * MOTION.throwCommit ? "again" : projected > w * MOTION.throwCommit ? "strong" : null;
+    card._releaseV = v;
+    /* A throw that is too soft, or not taken, brings the card back. */
+    if (!aim || !rateMock(aim)) {
+      sx.to(0, spring("springBack", { velocity: v }));
+      sy.to(0, SPRING.springBack);
     }
   };
   card.addEventListener("pointerup", release);
   card.addEventListener("pointercancel", release);
 
-  /* Flies the card into a tray, keeping the speed of the throw if there was one. */
+  /*
+    Flies the card into a tray, keeping the speed of the throw if there was one. It moves across
+    faster than it moves down, so it travels on a curve, the way a thrown card does.
+  */
   card._fly = (rate, done) => {
     const tray = byId("mock-trays") && byId("mock-trays").querySelector('[data-rate="' + rate + '"]');
     if (!tray || !motionOK()) { done(); return; }
@@ -6263,21 +6628,44 @@ function attachThrow(card) {
     const baseX = (cr.left + cr.right) / 2 - sx.x;
     const baseY = (cr.top + cr.bottom) / 2 - sy.x;
     tray.classList.add("is-target");
-    sx.to((tr.left + tr.right) / 2 - baseX, { damping: 1, response: 0.4, velocity: card._releaseV || 0 });
-    sy.to((tr.top + tr.bottom) / 2 - baseY, { damping: 1, response: 0.4 });
-    sp.to(1, { damping: 1, response: 0.4, onRest: () => { tray.classList.remove("is-target"); done(); } });
+    sx.to((tr.left + tr.right) / 2 - baseX, spring("flyX", { velocity: card._releaseV || 0 }));
+    sy.to((tr.top + tr.bottom) / 2 - baseY, SPRING.flyY);
+    sp.to(1, spring("flyShrink", { onRest: () => { tray.classList.remove("is-target"); done(); } }));
+  };
+
+  /* A skipped card has no tray to go to, so it leaves quietly: a short fade and a small drop. */
+  card._drop = done => {
+    if (!motionOK() || !card.animate) { done(); return; }
+    const anim = card.animate(
+      [{ opacity: 1, transform: "translateY(0)" }, { opacity: 0, transform: "translateY(10px)" }],
+      { duration: MOTION.exit, easing: cssToken("--ease-in", "ease-in"), fill: "forwards" });
+    anim.onfinish = done;
+    anim.oncancel = done;
   };
 }
 
-/* A new card is dealt from just above, the way a card comes off a stack. */
-function deal(card) {
-  if (!motionOK()) { fadeIn(card); return; }
-  card.style.opacity = "0";
-  const s = new Spring(0, p => {
-    card.style.opacity = String(Math.min(1, p * 1.3));
-    card.style.transform = "translateY(" + (-24 * (1 - p)).toFixed(2) + "px) rotate(" + (-1.2 * (1 - p)).toFixed(3) + "deg)";
-  }, { precision: 0.002 });
-  s.to(1, { damping: 1, response: 0.4, onRest: () => { card.style.opacity = ""; card.style.transform = ""; } });
+/*
+  Takes a card off the top of the deck, so the next one can take its place. It returns the
+  function that sends the card on its way, to call once the next card is in: the trays are then
+  back where they belong, and the card flies to the right spot. The card goes on moving by
+  itself, on top, while the next one is already in use, so nobody waits for it to finish leaving.
+*/
+function liftOff(card) {
+  if (!motionOK()) { card.remove(); return null; }
+  const width = card.offsetWidth;
+  card.querySelectorAll("[id]").forEach(n => n.removeAttribute("id"));
+  card.removeAttribute("id");
+  card.removeAttribute("aria-labelledby");
+  card.setAttribute("aria-hidden", "true");
+  card.inert = true;
+  card.classList.remove("is-dragging", "is-next");
+  card.classList.add("is-leaving");
+  card.style.width = width + "px";
+  const gone = () => card.remove();
+  return rate => {
+    if (rate && card._fly) card._fly(rate, gone);
+    else card._drop(gone);
+  };
 }
 
 function tick() {
@@ -6300,12 +6688,12 @@ function tick() {
   }
   const fill = byId("mock-budget-fill");
   const bar = byId("mock-budget");
-  if (fill) fill.style.width = Math.min(100, (sec / (target * 1.5)) * 100).toFixed(2) + "%";
+  if (fill) fill.style.transform = "translateX(" + (Math.min(100, (sec / (target * 1.5)) * 100) - 100).toFixed(2) + "%)";
   if (bar) bar.classList.toggle("is-over", over);
 }
 
 /* The stopwatch runs on a timer rather than animation frames, so it keeps counting wherever the coach is open. */
-function startTicker() { stopTicker(); shownSecond = -1; tick(); tickTimer = setInterval(tick, 200); }
+function startTicker() { stopTicker(); shownSecond = -1; tick(); tickTimer = setInterval(tick, MOTION.tick); }
 function stopTicker() { if (tickTimer) clearInterval(tickTimer); tickTimer = 0; }
 
 function togglePause() {
@@ -6319,13 +6707,19 @@ function togglePause() {
     stopTicker();
   }
   const b = byId("mock-pause");
-  if (b) b.replaceChildren(icon(mock.pausedAt ? "play" : "pause"), mock.pausedAt ? "Resume" : "Pause");
+  if (b) setFace(b, mock.pausedAt ? "resume" : "pause");
   shownSecond = -1;
   tick();
 }
 
+/* Rates the question on top, or skips it when r is empty. Returns false when the press was not taken. */
 function rateMock(r) {
-  if (!mock || mock.done || mock.flying) return;
+  if (!mock || mock.done || mock.closing) return false;
+  /*
+    The next card is in place the moment one is rated, so a double press would rate a question
+    nobody has read. A rating this soon after a card appears is taken as that second press.
+  */
+  if (r && performance.now() - mock.shownAt < MOTION.secondPress) return false;
   const qid = mock.ids[mock.index];
   mock.times[qid] = mockElapsed();
   if (r) {
@@ -6334,48 +6728,61 @@ function rateMock(r) {
     saveSoon();
   }
   const card = byId("mock-card");
-  if (r && card && card._fly) {
-    mock.flying = true;
-    stopTicker();
-    card._fly(r, () => {
-      if (!mock || !mock.flying) return;
-      mock.flying = false;
-      nextMockQuestion();
-    });
-  } else {
+  if (mock.index + 1 < mock.ids.length) {
+    /* The next card is there at once, and the rated one leaves on top of it. Nothing waits. */
+    const send = card ? liftOff(card) : null;
     nextMockQuestion();
+    if (send) send(r);
+    return true;
   }
+  /* The last card lands in its tray before the summary takes its place. */
+  stopTicker();
+  if (r && card && card._fly && motionOK()) {
+    mock.closing = true;
+    card._fly(r, () => { if (mock && mock.closing) finishMock(); });
+  } else {
+    finishMock();
+  }
+  return true;
 }
 
+/* Puts the next question on top. Only called while there is one. */
 function nextMockQuestion() {
   mock.index++;
   mock.showGuide = false;
-  if (mock.index >= mock.ids.length) {
-    finishMock();
-    return;
-  }
   mock.startedAt = Date.now();
+  mock.shownAt = performance.now();
   mock.pausedAt = null;
   mock.pausedTotal = 0;
   const slot = byId("mock-slot");
   if (!slot) { drawMock("forward"); return; }
+  /* Cards that are still leaving stay where they are, on top. */
+  Array.from(slot.children).forEach(c => { if (!c.classList.contains("is-leaving")) c.remove(); });
   const card = buildMockCard();
-  slot.replaceChildren(card);
-  deal(card);
+  card.classList.add("is-next");
+  slot.appendChild(card);
+  markDeck(slot);
   startTicker();
   focusEl("mock-q");
 }
 
-function finishMock() {
+/* Ends the round in the data: every question counts as passed and the round is counted once. */
+function closeMock() {
+  mock.closing = false;
+  mock.index = mock.ids.length;
   mock.done = true;
   state.mockRounds = (state.mockRounds || 0) + 1;
   saveSoon();
+}
+
+function finishMock() {
+  closeMock();
   drawMock("forward");
   focusEl("mock-done");
 }
 
 function endMock() {
-  if (!mock) return;
+  if (!mock || mock.done || mock.closing) return;
   mock.ids = mock.ids.slice(0, mock.index);
   if (!mock.ids.length) {
     mock = null;
@@ -6741,9 +7148,10 @@ function setupClear() {
             toast("All notes cleared.");
           }
         }, "Clear everything"),
-        h("button", { type: "button", class: "btn btn-small", onclick: closed }, "Cancel"))));
-    const confirmBtn = byId("clear-confirm");
-    if (confirmBtn) confirmBtn.focus();
+        h("button", { type: "button", class: "btn btn-small", id: "clear-cancel", onclick: closed }, "Cancel"))));
+    /* Focus starts on Cancel, so a second press of Enter or Space cannot clear everything by accident. */
+    const cancelBtn = byId("clear-cancel");
+    if (cancelBtn) cancelBtn.focus();
   };
   closed();
 }
@@ -6799,9 +7207,10 @@ function init() {
   screen (setup.js, only in the blank build) collects the role and then calls start with it.
 */
 let started = false;
-function start(pack) {
+function start(pack, fresh) {
   if (started) return;
   started = true;
+  arriving = !!fresh;
   PACK = pack;
   STORE_KEY = "client-interview-coach:" + PACK.id + ":v1";
   FOCUS_ITEMS = PACK.qualities.map(q => ({ id: q.id, name: q.name }))
@@ -6824,8 +7233,27 @@ function setupScrollEdge() {
   check();
 }
 
+/* When the system flips between light and dark, colors change at once instead of each fading at its own speed. */
+function setupThemeSwitch() {
+  const scheme = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
+  if (!scheme) return;
+  const root = document.documentElement;
+  const settle = () => root.classList.remove("theme-switching");
+  const onFlip = () => {
+    root.classList.add("theme-switching");
+    requestAnimationFrame(() => requestAnimationFrame(settle));
+    /* Frames stop in a hidden page, so a timer makes sure the class always comes off. */
+    setTimeout(settle, 300);
+  };
+  if (scheme.addEventListener) scheme.addEventListener("change", onFlip);
+  else if (scheme.addListener) scheme.addListener(onFlip);
+}
+
 function boot() {
   setupScrollEdge();
+  setupThemeSwitch();
+  window.addEventListener("pagehide", flushSave);
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") flushSave(); });
   const pack = readPack();
   if (pack) start(pack);
   else if (typeof window.coachSetup === "function") window.coachSetup(start);
