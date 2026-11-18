@@ -1059,10 +1059,9 @@ input[type="text"]:focus-visible, textarea:focus-visible, select:focus-visible {
 .note-field textarea { min-height: 4.25rem; }
 
 /*
-  3. What to do in ChatGPT: a small picture for each step, a button that pauses the pictures, then
-  a note under a hairline. A picture shows the part of ChatGPT where the step happens, drawn in the
-  coach's own colors rather than copied from ChatGPT. The button to press carries a sky blue ring
-  and a pointer.
+  3. What to do in ChatGPT: a small picture for each step, then a note under a hairline.
+  A picture shows the part of ChatGPT where the step happens, drawn in the coach's own colors
+  rather than copied from ChatGPT. The button to press carries a sky blue ring and a pointer.
 */
 .send-card { container-type: inline-size; }
 .walk { list-style: none; margin: 0; padding: 1.375rem; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.5rem 1.125rem; }
@@ -1071,9 +1070,6 @@ input[type="text"]:focus-visible, textarea:focus-visible, select:focus-visible {
 .walk-text { display: grid; grid-template-columns: 1.5rem minmax(0, 1fr); column-gap: 0.625rem; align-items: start; font-size: 0.9375rem; line-height: 1.4; }
 .walk-text .dot { margin-top: -0.0625rem; color: var(--ink); }
 .send-notes { margin: 0 1.375rem; padding: 1rem 0 1.25rem; border-top: 1px solid var(--hairline); color: var(--ink-2); font-size: 0.9375rem; }
-/* The pictures loop, so a button under them pauses them. With less motion they hold still and the button is not shown. */
-.walk-foot { display: flex; padding: 0 1.375rem 1.125rem; margin-top: -0.375rem; }
-@media (prefers-reduced-motion: reduce) { .walk-foot { display: none; } }
 
 .shot {
   --point-at: 0ms; --click-at: 560ms;
@@ -3486,26 +3482,26 @@ input[type="text"]:focus-visible, textarea:focus-visible, select:focus-visible {
   }
 
   /*
-    The pictures play in order, one every 900ms, and start again from the first with no pause, so
-    each one plays every 3.6 seconds while the other three hold their last frame. The loop runs while
-    any picture is in view and the page is shown, and picks up where it stopped. Motion that runs
-    longer than five seconds needs a way to stop it (WCAG 2.2.2), so the button under the pictures
-    pauses the loop, which leaves every picture on its last frame, and plays it again from the first.
-    With less motion, or in a browser that does not report what is in view, each picture shows its
-    last frame and the button is not shown.
+    The pictures play in order, each one once the one before has finished, and two seconds after the
+    fourth has finished they start again from the first, so a round takes about 6.6 seconds. The
+    pictures that are not playing hold their last frame. The loop runs while any picture is in view
+    and the page is shown, and picks up where it stopped. With less motion, or in a browser that does
+    not report what is in view, each picture shows its last frame.
+    There is no pause button, by request. WCAG 2.2.2 asks for a way to pause motion that starts by
+    itself and runs longer than five seconds, so add one back if the coach has to meet it.
   */
-  function playWalk(list, toggle) {
+  function playWalk(list) {
     const steps = Array.from(list.children);
-    const foot = toggle.parentElement;
-    const gap = 900;
-    if (!("IntersectionObserver" in window)) { foot.hidden = true; return; }
+    const between = 2000;
+    /* The browser starts an animation on the frame after it is asked for, so a short settle lets the press before it land first. */
+    const settle = 70;
+    if (!("IntersectionObserver" in window)) return;
     steps.forEach(s => s.classList.add("is-waiting"));
     const inView = new Set();
     let next = 0;
-    let last = -Infinity;
+    let due = 0;
     let timer = 0;
     let fallback = 0;
-    let paused = false;
     let heard = false;
 
     /* Taking the class off and reading the layout makes the same animations start again from their first frame. */
@@ -3514,8 +3510,13 @@ input[type="text"]:focus-visible, textarea:focus-visible, select:focus-visible {
       void s.offsetWidth;
       s.classList.add("is-playing");
     };
+    /* A picture has finished when the last of its animations has, delays included, so the timing stays with the styles. */
+    const runTime = s => {
+      const all = s.getAnimations ? s.getAnimations({ subtree: true }) : [];
+      return all.length ? Math.max(...all.map(a => (a.effect ? a.effect.getComputedTiming().endTime : 0))) : 1200;
+    };
     const rest = () => steps.forEach(s => s.classList.remove("is-waiting", "is-playing"));
-    const ready = () => !paused && inView.size > 0 && motionOK();
+    const ready = () => inView.size > 0 && motionOK();
 
     function tick() {
       timer = 0;
@@ -3525,17 +3526,19 @@ input[type="text"]:focus-visible, textarea:focus-visible, select:focus-visible {
         if (REDUCE_MOTION && REDUCE_MOTION.matches) rest();
         return;
       }
-      play(steps[next]);
+      const s = steps[next];
+      play(s);
       next = (next + 1) % steps.length;
-      last = performance.now();
-      timer = setTimeout(tick, gap);
+      const wait = runTime(s) + (next === 0 ? between : settle);
+      due = performance.now() + wait;
+      timer = setTimeout(tick, wait);
     }
 
     function wake() {
       if (!list.isConnected) { stop(); return; }
       if (!heard && !fallback && document.visibilityState !== "hidden") fallback = setTimeout(giveUp, 1500);
       if (timer || !ready()) return;
-      timer = setTimeout(tick, Math.max(0, last + gap - performance.now()));
+      timer = setTimeout(tick, Math.max(0, due - performance.now()));
     }
 
     function stop() {
@@ -3554,7 +3557,6 @@ input[type="text"]:focus-visible, textarea:focus-visible, select:focus-visible {
       if (heard) return;
       stop();
       rest();
-      foot.hidden = true;
     }
 
     const io = new IntersectionObserver(entries => {
@@ -3568,21 +3570,6 @@ input[type="text"]:focus-visible, textarea:focus-visible, select:focus-visible {
       if (REDUCE_MOTION.addEventListener) REDUCE_MOTION.addEventListener("change", wake);
       else if (REDUCE_MOTION.addListener) REDUCE_MOTION.addListener(wake);
     }
-
-    toggle.addEventListener("click", () => {
-      paused = !paused;
-      toggle.replaceChildren(icon(paused ? "play" : "pause"), paused ? "Play animation" : "Pause animation");
-      if (paused) {
-        clearTimeout(timer);
-        timer = 0;
-        rest();
-        return;
-      }
-      /* Playing again starts from the first picture, so the steps read in order. */
-      next = 0;
-      last = -Infinity;
-      wake();
-    });
     wake();
   }
 
@@ -3739,21 +3726,24 @@ input[type="text"]:focus-visible, textarea:focus-visible, select:focus-visible {
     /*
       3. ChatGPT: the job description and the CV are attached there, next to the prompt. They never
       pass through this page. The answer comes back one way only, as text in a code block. Each step
-      has a picture of where it happens in ChatGPT. The pictures loop, with a button under them that
-      pauses them.
+      has a picture of where it happens in ChatGPT. The pictures play in turn on a loop.
     */
     const walkList = h("ol", { class: "walk", role: "list" },
       walkStep(1, "Open a new chat in " + APP.aiTool + ".", shotNewChat()),
       walkStep(2, "Attach the job description and the CV.", shotAttach()),
       walkStep(3, "Paste the prompt and send it.", shotSend()),
       walkStep(4, "When the answer is done, press Copy on its code block.", shotCopy()));
-    const walkPause = h("button", { type: "button", class: "btn btn-small", id: "setup-walk-pause" }, icon("pause"), "Pause animation");
     const sendCard = h("div", { class: "sheet send-card" },
       walkList,
-      h("div", { class: "walk-foot" }, walkPause),
       h("p", { class: "send-notes" }, "No file for the job description? Paste its text into the message, under the prompt."));
 
-    /* 4. The answer is pasted into a well. A file is only the rescue for an answer that was cut off. */
+    /*
+      4. The answer is pasted into a well. A file is only the rescue for an answer that was cut off.
+      The line under the title says up front what to do when ChatGPT gets something wrong, so a list
+      of problems reads as a normal step and not as a fault in the coach.
+    */
+    const answerHelp = "If " + APP.aiTool + " gets something wrong, the coach lists what to fix and gives you a fix request to copy into the same chat. "
+      + APP.aiTool + " then writes the whole answer again. Paste the new answer here in place of the old one and press Fill in the coach again.";
     const answer = h("textarea", { id: "setup-answer", class: "answer-box", rows: "7", placeholder: "Paste the answer here" });
     const fileInput = h("input", { type: "file", id: "setup-file", class: "sr-only", tabindex: "-1", "aria-hidden": "true", accept: ".json,.txt,application/json,text/plain" });
     function readFile(f) {
@@ -3915,9 +3905,9 @@ input[type="text"]:focus-visible, textarea:focus-visible, select:focus-visible {
       stage(dots, 1, "Optional: what you know about the client", null, notesCard),
       stage(dots, 2, "Copy the prompt", null, promptCard),
       stage(dots, 3, "Send it in " + APP.aiTool, null, sendCard),
-      stage(dots, 4, "Paste the answer", null, zone, result));
+      stage(dots, 4, "Paste the answer", answerHelp, zone, result));
     byId("view").replaceChildren(view);
-    playWalk(walkList, walkPause);
+    playWalk(walkList);
   }
 
   /* A new coach starts on the Brief, not on the step an earlier coach left in the address. */
