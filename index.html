@@ -3132,6 +3132,28 @@ input[type="text"]:focus-visible, textarea:focus-visible, select:focus-visible {
   }
 
   /*
+    One slip is put right here and not sent back: a study topic that lists something other than a
+    question under its questions, for example a scenario id. That list only draws the links under
+    Questions to expect, and a topic may leave it out, so losing one entry breaks nothing. Each such
+    entry is taken out, as long as the topic keeps at least one real question. The answer itself is
+    left as it is and a copy comes back. The check keeps the same rules as build.py, and the role
+    that is kept and copied passes it.
+  */
+  function dropStrayStudyLinks(p) {
+    if (!isObj(p) || !Array.isArray(p.questions) || !Array.isArray(p.study)) return { pack: p, dropped: 0 };
+    const ids = new Set(p.questions.filter(isObj).map(q => idOf(q.id)));
+    let dropped = 0;
+    const study = p.study.map(t => {
+      if (!isObj(t) || !Array.isArray(t.questions)) return t;
+      const kept = t.questions.filter(q => ids.has(idOf(q)));
+      if (!kept.length || kept.length === t.questions.length) return t;
+      dropped += t.questions.length - kept.length;
+      return Object.assign({}, t, { questions: kept });
+    });
+    return dropped ? { pack: Object.assign({}, p, { study }), dropped } : { pack: p, dropped: 0 };
+  }
+
+  /*
     Notes are stored under the pack id, so each role and consultant needs an id of its own. The id
     ends in a short fingerprint of the content: pasting the same answer again finds the same notes,
     and a coach for another consultant in the same role gets its own.
@@ -3330,7 +3352,7 @@ input[type="text"]:focus-visible, textarea:focus-visible, select:focus-visible {
     L.push("- Leave out the consultant's name, contact details and any other personal identifiers, and never name the consultant's employer or the client. Write \"the client\", \"your company\" and \"you\".");
     L.push("- Invented people in scenarios may carry first names, but never a real colleague's or client's name.");
     L.push("- Write in plain American English for someone reading under pressure, often in their second language. No dashes as punctuation and no semicolons. Highlight at most one phrase per paragraph with ==double equals signs==.");
-    L.push("- Check that every id referenced anywhere exists, every scenario path ends and nothing loops.");
+    L.push("- Check that every id referenced anywhere exists, every scenario path ends and nothing loops. An id must exist as the kind of item its field asks for, so a field that takes question ids never holds a scenario id.");
     L.push("");
     L.push("FORMAT");
     L.push("");
@@ -3800,8 +3822,8 @@ input[type="text"]:focus-visible, textarea:focus-visible, select:focus-visible {
           status));
     }
 
-    /* The pack passed: the card lists what each part of the coach now holds and opens it. */
-    function kitCard(pack) {
+    /* The pack passed: the card lists what each part of the coach now holds and opens it. dropped counts the study links that were left out. */
+    function kitCard(pack, dropped) {
       const fitItems = isObj(pack.fit) && Array.isArray(pack.fit.items) ? pack.fit.items : [];
       const gaps = fitItems.filter(it => it.strength === "gap").length;
       const list = h("ol", { class: "kit-list" }, kitRows(pack).map(r => h("li", { class: "kit-row" },
@@ -3817,6 +3839,7 @@ input[type="text"]:focus-visible, textarea:focus-visible, select:focus-visible {
         h("div", { class: "kit-foot" },
           gaps ? h("p", { class: "kit-note" }, count(gaps, "gap", "gaps") + " in the CV to prepare for, marked on the Brief.") : null,
           isOlderRole(pack) ? h("p", { class: "kit-note" }, "This role comes from an older coach, so it has no study topics. Set it up again to get them.") : null,
+          dropped ? h("p", { class: "kit-note", id: "setup-dropped" }, count(dropped, "link", "links") + " under Questions to expect in the study topics did not point at a practice question, so " + (dropped === 1 ? "it was" : "they were") + " left out. Nothing else was changed.") : null,
           keeps ? null : h("p", { class: "small muted" }, "This browser does not keep the role, so keep " + APP.aiTool + "’s answer to paste again next time."),
           h("div", { class: "btn-row" },
             h("button", { type: "button", class: "btn btn-primary btn-large", id: "setup-open", onclick: () => openCoach(pack) }, "Open the coach"))));
@@ -3848,17 +3871,32 @@ input[type="text"]:focus-visible, textarea:focus-visible, select:focus-visible {
           h("button", { type: "button", class: "btn", id: "setup-open-file", onclick: () => fileInput.click() }, "Open the file")));
         return;
       }
-      const problems = cvProblems(parsed.pack).concat(checkPack(parsed.pack, null, true), contactProblems(parsed.pack));
+      const allProblems = p => cvProblems(p).concat(checkPack(p, null, true), contactProblems(p));
+      let answerPack = parsed.pack;
+      let problems = allProblems(answerPack);
+      let dropped = 0;
+      /*
+        A stray study link is put right only when it is all that stands between the answer and a
+        coach. With other problems the full list goes to ChatGPT, which then fixes the link too.
+      */
+      if (problems.length) {
+        const tidy = dropStrayStudyLinks(answerPack);
+        if (tidy.dropped && !allProblems(tidy.pack).length) {
+          answerPack = tidy.pack;
+          dropped = tidy.dropped;
+          problems = [];
+        }
+      }
       if (problems.length) {
         setReady(false);
         showResult(problemsCard(problems));
         return;
       }
-      const pack = readyPack(parsed.pack);
+      const pack = readyPack(answerPack);
       /* A role that needs a word first gets a card that says it. Every other role opens at once. */
-      if (isOlderRole(pack) || !keeps) {
+      if (isOlderRole(pack) || !keeps || dropped) {
         setReady(true);
-        showResult(kitCard(pack), sweep);
+        showResult(kitCard(pack, dropped), sweep);
         return;
       }
       openCoach(pack);
@@ -3969,6 +4007,7 @@ input[type="text"]:focus-visible, textarea:focus-visible, select:focus-visible {
   coachSetup.contactProblems = contactProblems;
   coachSetup.cvProblems = cvProblems;
   coachSetup.parseAnswer = parseAnswer;
+  coachSetup.dropStrayStudyLinks = dropStrayStudyLinks;
   window.coachSetup = coachSetup;
 })();
 
