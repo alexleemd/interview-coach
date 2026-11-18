@@ -2,33 +2,34 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Client Interview Coach</title>
-<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="icon" href="data:,">
 <meta name="description" content="Client interview prep: study topics, stories, practice questions, branching scenarios, a timed mock interview and a ChatGPT practice prompt.">
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#F2F4F9" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#000033" media="(prefers-color-scheme: dark)">
 <style>
 /*
-  Look: a native feeling app in the firm's navy, white and sky blue.
+  Look: a native feeling app in navy, white and sky blue.
   Layout: a sidebar holds the eight steps beside one centered reading column. On phones the
   sidebar becomes a panel that slides in from the left, under a translucent header.
   Surfaces: grouped lists on white cards over a cool grey ground, with hairlines instead of boxes.
   Translucent materials are kept for the parts that float over content: the phone header, the
   panel and the toast. The sidebar on a wide screen has nothing passing under it, so it is solid.
-  Color follows the firm's CV template. Navy is the ink and the main action. Sky blue has two
-  jobs only: it marks what is selected, and it highlights a phrase. Text the coach wrote for you,
-  its drafts and its feedback, sits in an outlined note.
+  Color: navy is the ink and the main action. Sky blue has two jobs only: it marks what is
+  selected, and it highlights a phrase. Text the coach wrote for you, its drafts and its feedback,
+  sits in an outlined note.
   Type: the system font of the device (San Francisco on Apple devices, Segoe UI on Windows), so
   the file embeds no fonts and still works offline. Tracking tightens as the size grows.
-  Motion lives in app.js, as springs that start from what is on screen and are named in one list
-  there. The styles here only handle press, hover and state changes, with their durations and
+  Motion lives in the script, as springs that start from what is on screen and are named in one
+  list there. The styles here only handle press, hover and state changes, with their durations and
   curves named under Motion below. With reduced motion nothing animates.
 */
 
 :root {
-  /* Color: the firm's navy (#000033) and white, with its sky blue (#A6E3FA) for selection */
+  /* Color: navy (#000033) and white, with sky blue (#A6E3FA) for selection */
   color-scheme: light;
   --bg: #F2F4F9;
   --surface: #FFFFFF;
@@ -95,9 +96,9 @@
   --gutter-r: max(16px, env(safe-area-inset-right, 0px));
 
   /*
-    Motion. Every transition in these styles uses these names, and app.js reads the curves from
-    here. Press, hover and color changes take 150ms or less. Bigger moves are springs, named in
-    one list in app.js (SPRING).
+    Motion. Every transition in these styles uses these names, and the script reads the curves
+    from here. Press, hover and color changes take 150ms or less. Bigger moves are springs, named
+    in one list in the script (SPRING).
   */
   --ease-out: cubic-bezier(0.32, 0.72, 0, 1);      /* something appears, or answers a press */
   --ease-in: cubic-bezier(0.55, 0, 1, 0.45);       /* something leaves */
@@ -816,7 +817,7 @@ input[type="text"]:focus-visible, textarea:focus-visible, select:focus-visible {
 .card-question { font-family: var(--font-display); font-weight: 700; font-size: clamp(1.625rem, 1.25rem + 1.8vw, 2.25rem); line-height: 1.14; letter-spacing: -0.021em; outline: none; }
 /*
   With a mouse, the cards in a round are one size, like cards in a deck: every question gets the
-  room the longest one needs (app.js measures it). The clock, the buttons and the trays then stay
+  room the longest one needs (the script measures it). The clock, the buttons and the trays then stay
   where they are, so the pointer is already on the tray for the next rating. On a touch screen the
   card stays as short as its question, because room matters more there than a fixed place.
 */
@@ -1193,7 +1194,7 @@ input[type="text"]:focus-visible, textarea:focus-visible, select:focus-visible {
 .shot-cursor path { fill: var(--ink); stroke: var(--surface); stroke-width: 1.75; paint-order: stroke; }
 
 /*
-  The pictures play on a loop, one at a time (setup.js sets the order and the pace). A picture
+  The pictures play on a loop, one at a time (the Set up script sets the order and the pace). A picture
   rests on its last frame. Before it plays again, what the step adds fades out. Then it plays:
   what the step adds appears, and the pointer moves to the button and presses it.
 */
@@ -2192,13 +2193,13 @@ input[type="text"]:focus-visible, textarea:focus-visible, select:focus-visible {
    "start": "n1",
    "nodes": {
     "n1": {
-     "setup": "A team manager writes: “Freja starts today. Please give her the same access as Emil in the application as soon as possible.”",
+     "setup": "A team manager writes: “A new starter joins my team today. Please give her the same access as one of her colleagues in the application as soon as possible.”",
      "prompt": "How do you handle it?",
      "choices": [
       {
-       "text": "Copy Emil’s access to Freja so she can start working today.",
+       "text": "Copy the colleague’s access to the new starter so she can start working today.",
        "rating": "weak",
-       "reaction": "Fast, but Emil may have built up access over years that Freja does not need. This is how people end up with far too much access.",
+       "reaction": "Fast, but the colleague may have built up access over years that the new starter does not need. This is how people end up with far too much access.",
        "tip": "Access should match the job (least privilege), and it needs approval.",
        "next": "n2a"
       },
@@ -2210,7 +2211,7 @@ input[type="text"]:focus-visible, textarea:focus-visible, select:focus-visible {
        "next": "n2b"
       },
       {
-       "text": "Ask what Freja will do in the application, get the approval the process requires and give her the roles that match her job.",
+       "text": "Ask what the new starter will do in the application, get the approval the process requires and give her the roles that match her job.",
        "rating": "strong",
        "reaction": "Helpful and correct. You are solving the manager’s problem without cutting corners.",
        "tip": "Mention least privilege and approval by name in the interview. It shows you know why the rules exist.",
@@ -2219,7 +2220,7 @@ input[type="text"]:focus-visible, textarea:focus-visible, select:focus-visible {
      ]
     },
     "n2a": {
-     "setup": "Two months later an access review shows that Freja can approve changes in a part of the application she does not work in. The application owner asks how that happened.",
+     "setup": "Two months later an access review shows that the new starter can approve changes in a part of the application she does not work in. The application owner asks how that happened.",
      "prompt": "What do you say?",
      "choices": [
       {
@@ -2230,7 +2231,7 @@ input[type="text"]:focus-visible, textarea:focus-visible, select:focus-visible {
        "next": null
       },
       {
-       "text": "Say that the manager asked for the same access as Emil.",
+       "text": "Say that the manager asked for the same access as the colleague.",
        "rating": "weak",
        "reaction": "Technically true, but it reads as passing the blame. You granted it.",
        "tip": "Own your part first, then fix it.",
@@ -2259,12 +2260,12 @@ input[type="text"]:focus-visible, textarea:focus-visible, select:focus-visible {
       {
        "text": "Offer to set up the basic role for her job today once the manager approves it, and add more specific roles as soon as the manager confirms what she needs.",
        "rating": "strong",
-       "reaction": "Practical and still within the rules. Freja can start, and nothing is granted without approval.",
+       "reaction": "Practical and still within the rules. She can start, and nothing is granted without approval.",
        "tip": "Saying yes to the goal while keeping the control is a strong stakeholder answer.",
        "next": null
       },
       {
-       "text": "Give her everything Emil has for now and tidy it up later.",
+       "text": "Give her everything the colleague has for now and tidy it up later.",
        "rating": "weak",
        "reaction": "Later rarely comes, and the risk starts today.",
        "tip": "Temporary extra access is still extra access.",
@@ -2878,16 +2879,17 @@ input[type="text"]:focus-visible, textarea:focus-visible, select:focus-visible {
 <script>
 /*
   Client interview coach: the Set up screen of the blank coach.
-  Only the blank build carries this file. It runs before app.js and gives app.js one function,
-  window.coachSetup, which app.js calls when the page holds no role pack. The screen writes one
-  prompt for ChatGPT, fixed apart from what the person adds about the client, takes ChatGPT's
-  answer back as text, checks it with the same rules as build.py and then starts the coach with it.
+  This script runs before the app code below and gives it one function, window.coachSetup, which
+  the app code calls when the page holds no role pack. The screen writes one prompt for ChatGPT,
+  fixed apart from what the person adds about the client, takes ChatGPT's answer back as text,
+  checks it and then starts the coach with it.
   The job description and the CV never enter this page. The person attaches them in ChatGPT next
   to the prompt. What the person writes about the client is held in memory only and goes into the
-  prompt. The check also looks for contact details and for the parts that come from the CV.
-  Like app.js, this file makes no network calls, starts no file downloads and never uses
-  innerHTML. It builds the screen with the helpers in app.js (h, icon, tag, optionCards and so on),
-  which all exist by the time app.js calls it.
+  prompt. The names the person asks to keep out are held in memory only and stay out of the prompt.
+  The check also looks for contact details and for the parts that come from the CV.
+  Like the app code, this script makes no network calls, starts no file downloads and never uses
+  innerHTML. It builds the screen with the helpers in the app code (h, icon, tag, optionCards and
+  so on), which all exist by the time the app code calls it.
 */
 "use strict";
 
@@ -2895,7 +2897,7 @@ input[type="text"]:focus-visible, textarea:focus-visible, select:focus-visible {
   /* The role a blank coach was set up with stays in this browser under one key, next to the notes. */
   const ACTIVE_KEY = "client-interview-coach:active-pack";
 
-  /* ---------- The pack check: the same rules and the same messages as build.py ---------- */
+  /* ---------- The pack check ---------- */
 
   const QUESTION_TYPES = ["closer", "experience", "knowledge", "opener", "scenario"];
   const CHOICE_RATINGS = ["okay", "strong", "weak"];
@@ -2907,11 +2909,6 @@ input[type="text"]:focus-visible, textarea:focus-visible, select:focus-visible {
   /* The coach names the AI tool itself, never a generic or company AI. */
   const GENERIC_AI = /\bAI (practice|chat|tool|provider)s?\b|\bcompany[’']s AI\b/i;
   const DASHES = /[–—]/;
-  /* Two names no coach may mention. They are kept as character codes so this file never contains them. */
-  const HIDDEN_NAMES = [[99, 108, 97, 117, 100, 101], [97, 110, 116, 104, 114, 111, 112, 105, 99]]
-    .map(codes => String.fromCharCode.apply(null, codes));
-  const NOT_IN_COACH = new RegExp(HIDDEN_NAMES.join("|"), "i");
-  const NOT_IN_COACH_MESSAGE = "mentions " + HIDDEN_NAMES.map(n => n.charAt(0).toUpperCase() + n.slice(1)).join(" or ") + ", which no coach may do";
 
   function isObj(v) { return v !== null && typeof v === "object" && !Array.isArray(v); }
   function present(v) { return !(v === undefined || v === null || v === "" || (Array.isArray(v) && v.length === 0)); }
@@ -2920,7 +2917,7 @@ input[type="text"]:focus-visible, textarea:focus-visible, select:focus-visible {
   function has(set, v) { return set.has(idOf(v)); }
   function hasKey(obj, k) { return typeof k === "string" && Object.prototype.hasOwnProperty.call(obj, k); }
 
-  /* Values printed the way build.py prints them, so both checks report the same text. */
+  /* Values as the problem messages print them. */
   function py(v) {
     if (v === undefined || v === null) return "None";
     if (v === true) return "True";
@@ -2931,8 +2928,7 @@ input[type="text"]:focus-visible, textarea:focus-visible, select:focus-visible {
 
   /*
     The browser must never break on a pasted answer, so anything in the wrong shape stops the check
-    before the rules run. build.py has no need for this, since a pack that reaches it was checked here
-    or written by hand.
+    before the rules run.
   */
   function shapeProblems(p) {
     const out = [];
@@ -3017,9 +3013,9 @@ input[type="text"]:focus-visible, textarea:focus-visible, select:focus-visible {
 
   /*
     Returns a list of problems. An empty list means the pack can be used.
-    keepOut is an optional list of names (the consultant, the firm, the client) that must not appear.
+    keepOut is the list of names the person asked to keep out, if any. None of them may appear.
     olderOk lets a role from an older coach through without requirements, study topics and bridges.
-    Everything else in it is checked as usual. build.py has no such case, since it only builds new coaches.
+    Everything else in it is checked as usual.
   */
   function checkPack(p, keepOut, olderOk) {
     if (!isObj(p)) return ["pack: is not a JSON object"];
@@ -3172,7 +3168,6 @@ input[type="text"]:focus-visible, textarea:focus-visible, select:focus-visible {
         if (DASHES.test(v)) errs.push(where + ": contains a dash, rewrite as full sentences");
         if (MOTIVATION.test(v)) errs.push(where + ": reads as a motivation question or line, the coach only covers whether the consultant can do the work");
         if (GENERIC_AI.test(v)) errs.push(where + ": names a generic or company AI tool, call it " + APP.aiTool);
-        if (NOT_IN_COACH.test(v)) errs.push(where + ": " + NOT_IN_COACH_MESSAGE);
         nameRules.forEach(r => { if (r.re.test(v)) errs.push(where + ": contains " + r.n + ", which must stay out of the coach"); });
       } else if (Array.isArray(v)) {
         v.forEach((x, i) => walk(x, where + "[" + i + "]"));
@@ -3209,8 +3204,8 @@ input[type="text"]:focus-visible, textarea:focus-visible, select:focus-visible {
     question under its questions, for example a scenario id. That list only draws the links under
     Questions to expect, and a topic may leave it out, so losing one entry breaks nothing. Each such
     entry is taken out, as long as the topic keeps at least one real question. The answer itself is
-    left as it is and a copy comes back. The check keeps the same rules as build.py, and the role
-    that is kept and copied passes it.
+    left as it is and a copy comes back. The check itself is not loosened, and the role that is kept
+    and copied passes it.
   */
   function dropStrayStudyLinks(p) {
     if (!isObj(p) || !Array.isArray(p.questions) || !Array.isArray(p.study)) return { pack: p, dropped: 0 };
@@ -3423,7 +3418,7 @@ input[type="text"]:focus-visible, textarea:focus-visible, select:focus-visible {
     L.push("- Leave out motivation. The client only checks whether the consultant can do the work, so no question, covers point, intro hint, intro draft or message asks or says why the consultant wants the role.");
     L.push("- When anything mentions practicing with AI, call the tool " + tool + " by name. Never refer to it in a general way or as a company tool.");
     L.push("- Leave out the consultant's name, contact details and any other personal identifiers, and never name the consultant's employer or the client. Write \"the client\", \"your company\" and \"you\".");
-    L.push("- Invented people in scenarios may carry first names, but never a real colleague's or client's name.");
+    L.push("- Give no person a name, real or invented. In scenarios, stories and drafts, refer to people by their role, for example a manager, a user or a vendor.");
     L.push("- Write in plain American English for someone reading under pressure, often in their second language. No dashes as punctuation and no semicolons. Highlight at most one phrase per paragraph with ==double equals signs==.");
     L.push("- Check that every id referenced anywhere exists, every scenario path ends and nothing loops. An id must exist as the kind of item its field asks for, so a field that takes question ids never holds a scenario id.");
     L.push("");
@@ -3854,6 +3849,26 @@ input[type="text"]:focus-visible, textarea:focus-visible, select:focus-visible {
     const result = h("div", { class: "setup-result", id: "setup-result", "aria-live": "polite" });
 
     /*
+      Names to keep out: an optional list the answer is checked against. The list is held in memory
+      only. It is never saved and never goes into the prompt.
+    */
+    let keepOut = [];
+    const namesBox = h("textarea", {
+      id: "setup-names", rows: "2", autocomplete: "off", spellcheck: "false",
+      placeholder: "The name on the CV, your company, the client", "aria-describedby": "setup-names-help"
+    });
+    namesBox.addEventListener("input", () => {
+      keepOut = namesBox.value.split(/[\n,]+/).map(n => n.trim()).filter(Boolean);
+      /* A result for an earlier list no longer holds, so the answer has to be checked again. */
+      if (result.firstChild) { result.replaceChildren(); setReady(false); }
+    });
+    const namesCard = h("div", { class: "sheet sheet-pad" },
+      h("div", { class: "field note-field" },
+        h("label", { class: "field-label", for: "setup-names" }, "Names to keep out (optional)"),
+        h("span", { class: "field-help", id: "setup-names-help" }, "List names that must not appear, for example the name on the CV, your company and the client. Use commas or new lines. An answer that contains one is refused. The names are not saved and do not go into the prompt."),
+        namesBox));
+
+    /*
       Shows a result under the answer box. When the fix is to paste again, focus goes back into the
       box with its content selected, so the next paste replaces it, and the box shakes once. The
       message is still read out, because the result area is a live region.
@@ -3944,7 +3959,7 @@ input[type="text"]:focus-visible, textarea:focus-visible, select:focus-visible {
           h("button", { type: "button", class: "btn", id: "setup-open-file", onclick: () => fileInput.click() }, "Open the file")), null, true);
         return;
       }
-      const allProblems = p => cvProblems(p).concat(checkPack(p, null, true), contactProblems(p));
+      const allProblems = p => cvProblems(p).concat(checkPack(p, keepOut, true), contactProblems(p));
       let answerPack = parsed.pack;
       let problems = allProblems(answerPack);
       let dropped = 0;
@@ -3988,7 +4003,7 @@ input[type="text"]:focus-visible, textarea:focus-visible, select:focus-visible {
       stage(dots, 1, "Optional: what you know about the client", null, notesCard),
       stage(dots, 2, "Copy the prompt", null, promptCard),
       stage(dots, 3, "Send it in " + APP.aiTool, null, sendCard),
-      stage(dots, 4, "Paste the answer", answerHelp, zone, result));
+      stage(dots, 4, "Paste the answer", answerHelp, namesCard, zone, result));
     byId("view").replaceChildren(view);
     playWalk(walkList);
   }
@@ -4053,7 +4068,7 @@ input[type="text"]:focus-visible, textarea:focus-visible, select:focus-visible {
     byId("tools").appendChild(box);
   }
 
-  /* Called by app.js when the page holds no role pack. */
+  /* Called by the app code when the page holds no role pack. */
   function coachSetup(start) {
     /* The example role is only the reference inside the prompt for ChatGPT. It cannot be opened as a coach. */
     let example = null;
@@ -4076,7 +4091,7 @@ input[type="text"]:focus-visible, textarea:focus-visible, select:focus-visible {
   }
 
   coachSetup.staleAdvice = "If the interview is over, choose Start a new coach to clear the role and your notes.";
-  /* For the tests: the same check the screen runs, and the prompt it writes. */
+  /* The same check the screen runs, and the prompt it writes, so both can be checked from outside. */
   coachSetup.checkPack = checkPack;
   coachSetup.buildPrompt = buildSetupPrompt;
   coachSetup.contactProblems = contactProblems;
@@ -4110,7 +4125,7 @@ const APP = {
   Everything about one role and one consultant lives in the role pack, a JSON block in the page
   with the id coach-pack. Swapping that block is all it takes to make a coach for another
   interview. A blank coach leaves the block empty and opens on the Set up screen, which collects
-  the role and then starts the coach with it. See the framework README for the pack format.
+  the role and then starts the coach with it. The Set up prompt writes out the pack format.
 */
 let PACK = null;
 let STORE_KEY = "";
@@ -7204,7 +7219,7 @@ function init() {
 
 /*
   A coach file carries its pack and starts at once. A blank coach has no pack, so the Set up
-  screen (setup.js, only in the blank build) collects the role and then calls start with it.
+  screen (the script above) collects the role and then calls start with it.
 */
 let started = false;
 function start(pack, fresh) {
